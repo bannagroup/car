@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شركة البنا جروب - منظومة إدارة الأسطول</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <style>
+        @media print {
+            body * { visibility: hidden; }
+            #print-invoice-zone, #print-invoice-zone * { visibility: visible; }
+            #print-invoice-zone { position: absolute; left: 0; top: 0; width: 100%; direction: rtl; background-color: white !important; color: black !important; }
+            .no-print { display: none !important; }
+        }
+        .tab-active { background-color: #1e3a8a !important; color: #ffffff !important; }
+        .badge { display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 4px;background:#ef4444;color:#fff;border-radius:9999px;font-size:10px;font-weight:900;margin-right:3px;animation:pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.7} }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-gray-800 min-h-screen pb-12">
+
+<header class="no-print bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white py-3 px-6 shadow-xl sticky top-0 z-40">
+    <div class="container mx-auto flex flex-col md:flex-row justify-between items-center gap-3">
+        <div class="flex items-center gap-3">
+            <img src="logo.png" alt="El Banna Group" class="h-12 w-auto drop-shadow-lg">
+            <div>
+                <h1 class="text-base font-black leading-tight" style="color:#c9a84c;">EL BANNA GROUP</h1>
+                <p class="text-[11px] font-bold text-amber-200">المنظومة الرقمية الشاملة لإدارة الأسطول والعهد</p>
+                <p class="text-[10px] text-blue-400">إصدار 2026 — تطوير: أ/ فتحي صابر</p>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-1 bg-slate-950/40 p-1 rounded-xl border border-slate-700">
+            <button onclick="switchMainScreen('dashboard')" id="nav-dashboard" class="px-3 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition flex items-center gap-1"><i class="fa-solid fa-house"></i> الرئيسية</button>
+            <button onclick="switchMainScreen('admin')" id="nav-admin" class="px-3 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition flex items-center gap-1"><i class="fa-solid fa-user-shield"></i> الأدمن 🔒</button>
+            <button onclick="switchMainScreen('supervisor')" id="nav-supervisor" class="px-3 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition flex items-center gap-1"><i class="fa-solid fa-user-gear"></i> المشرف 🔒</button>
+            <button onclick="switchMainScreen('traffic')" id="nav-traffic" class="px-3 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition flex items-center gap-1"><i class="fa-solid fa-traffic-light"></i> مدير الحركة 🔒 <span id="badge-traffic" class="badge hidden">0</span></button>
+            <button onclick="switchMainScreen('finance')" id="nav-finance" class="px-3 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition flex items-center gap-1"><i class="fa-solid fa-wallet"></i> المدير المالي 🔒 <span id="badge-finance" class="badge hidden">0</span></button>
+            <button onclick="switchMainScreen('reports')" id="nav-reports" class="px-3 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition flex items-center gap-1"><i class="fa-solid fa-chart-pie"></i> التقارير</button>
+        </div>
+    </div>
+</header>
+
+<main class="container mx-auto px-4 mt-6 max-w-7xl no-print">
+
+<!-- ======== شاشة الداشبورد ======== -->
+<div id="screen-dashboard" class="main-screen hidden space-y-6">
+    <div class="text-center py-4">
+        <img src="logo.png" alt="El Banna Group" class="h-20 mx-auto mb-2 drop-shadow-xl">
+        <h2 class="text-2xl font-black" style="color:#7a5c1e;">EL BANNA GROUP</h2>
+        <p class="text-sm text-gray-500 font-bold">المنظومة الرقمية الشاملة لإدارة الأسطول — Since 1974</p>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-gradient-to-br from-blue-600 to-blue-800 text-white p-5 rounded-2xl shadow-lg text-center space-y-1">
+            <i class="fa-solid fa-car text-3xl opacity-80"></i>
+            <div class="text-3xl font-black" id="dash-total-cars">0</div>
+            <div class="text-xs font-bold opacity-90">إجمالي السيارات</div>
+        </div>
+        <div class="bg-gradient-to-br from-emerald-600 to-emerald-800 text-white p-5 rounded-2xl shadow-lg text-center space-y-1">
+            <i class="fa-solid fa-vault text-3xl opacity-80"></i>
+            <div class="text-2xl font-black" id="dash-total-custody">0</div>
+            <div class="text-xs font-bold opacity-90">إجمالي العهد (ج.م)</div>
+        </div>
+        <div class="bg-gradient-to-br from-amber-500 to-orange-600 text-white p-5 rounded-2xl shadow-lg text-center space-y-1">
+            <i class="fa-solid fa-clock text-3xl opacity-80"></i>
+            <div class="text-3xl font-black" id="dash-pending-count">0</div>
+            <div class="text-xs font-bold opacity-90">فواتير قيد الاعتماد</div>
+        </div>
+        <div class="bg-gradient-to-br from-red-500 to-rose-700 text-white p-5 rounded-2xl shadow-lg text-center space-y-1">
+            <i class="fa-solid fa-triangle-exclamation text-3xl opacity-80"></i>
+            <div class="text-3xl font-black" id="dash-expired-cars">0</div>
+            <div class="text-xs font-bold opacity-90">سيارات منتهية الترخيص</div>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white rounded-2xl shadow border p-5 space-y-3">
+            <h4 class="text-xs font-black text-slate-800 border-b pb-2"><i class="fa-solid fa-file-invoice text-blue-600 ml-1"></i> حالة الفواتير</h4>
+            <div class="space-y-2 text-xs">
+                <div class="flex justify-between items-center p-2 bg-amber-50 rounded-lg border border-amber-200">
+                    <span class="font-bold text-amber-800">⏳ انتظار مدير الحركة</span>
+                    <span id="dash-inv-pending" class="bg-amber-500 text-white font-black px-2 py-0.5 rounded-full">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 bg-blue-50 rounded-lg border border-blue-200">
+                    <span class="font-bold text-blue-800">✔ معتمدة - انتظار المالي</span>
+                    <span id="dash-inv-approved" class="bg-blue-500 text-white font-black px-2 py-0.5 rounded-full">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 bg-emerald-50 rounded-lg border border-emerald-200">
+                    <span class="font-bold text-emerald-800">✔✔ مكتملة ومطبوعة</span>
+                    <span id="dash-inv-finalized" class="bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full">0</span>
+                </div>
+                <div class="flex justify-between items-center p-2 bg-red-50 rounded-lg border border-red-200">
+                    <span class="font-bold text-red-800">✘ مرفوضة</span>
+                    <span id="dash-inv-rejected" class="bg-red-500 text-white font-black px-2 py-0.5 rounded-full">0</span>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl shadow border p-5 space-y-3">
+            <h4 class="text-xs font-black text-slate-800 border-b pb-2"><i class="fa-solid fa-users text-emerald-600 ml-1"></i> عهود المشرفين</h4>
+            <div id="dash-sups-list" class="space-y-2 text-xs max-h-48 overflow-y-auto"></div>
+        </div>
+        <div class="bg-white rounded-2xl shadow border p-5 space-y-3">
+            <h4 class="text-xs font-black text-slate-800 border-b pb-2"><i class="fa-solid fa-id-card text-red-600 ml-1"></i> تراخيص تحتاج متابعة</h4>
+            <div id="dash-urgent-licenses" class="space-y-1.5 text-xs max-h-48 overflow-y-auto"></div>
+        </div>
+    </div>
+    <div class="bg-gradient-to-l from-amber-950/10 to-yellow-900/10 border border-amber-300/40 rounded-2xl p-4 text-center text-xs text-amber-900 font-bold">
+        <i class="fa-solid fa-code ml-1 text-amber-600"></i> تم تطوير هذا النظام بواسطة: <span style="color:#7a5c1e;">أ/ فتحي صابر</span> — شركة البنا جروب &copy; 2026
+    </div>
+</div>
+
+<!-- ======== شاشة الأدمن ======== -->
+<div id="screen-admin" class="main-screen hidden space-y-6">
+    <div id="admin-auth-barrier" class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl border text-center space-y-4">
+        <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto text-2xl border"><i class="fa-solid fa-lock"></i></div>
+        <h3 class="text-base font-black">صلاحيات المدير العام محمية</h3>
+        <input type="password" id="admin-login-pass" placeholder="أدخل كلمة المرور..." class="w-full p-2.5 text-center border rounded-xl font-mono tracking-widest text-sm" onkeydown="if(event.key==='Enter')verifyAdminAccess()">
+        <button onclick="verifyAdminAccess()" class="w-full bg-blue-600 text-white font-bold py-2 rounded-xl text-xs hover:bg-blue-700">دخول</button>
+    </div>
+    <div id="admin-real-content" class="hidden space-y-6">
+        <div class="flex flex-wrap gap-2 border-b pb-2">
+            <button onclick="switchAdminTab('sub-admin-vios')" id="tab-admin-vios" class="bg-white px-3 py-2 border rounded-lg text-xs font-bold">المخالفات والخصومات</button>
+            <button onclick="switchAdminTab('sub-admin-cars')" id="tab-admin-cars" class="bg-white px-3 py-2 border rounded-lg text-xs font-bold">السيارات والسائقين</button>
+            <button onclick="switchAdminTab('sub-admin-licenses')" id="tab-admin-licenses" class="bg-white px-3 py-2 border rounded-lg text-xs font-bold">التراخيص</button>
+            <button onclick="switchAdminTab('sub-admin-sups')" id="tab-admin-sups" class="bg-white px-3 py-2 border rounded-lg text-xs font-bold">المشرفين والعهد</button>
+            <button onclick="switchAdminTab('sub-admin-security')" id="tab-admin-security" class="bg-white px-3 py-2 border rounded-lg text-xs font-bold">كلمات المرور</button>
+        </div>
+
+        <div id="sub-admin-vios" class="admin-tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-5 rounded-xl shadow border space-y-3">
+                    <h4 class="text-xs font-black text-rose-900 bg-rose-50 p-2 rounded"><i class="fa-solid fa-gavel"></i> إدراج مخالفة</h4>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <input type="text" id="adm-vio-car" placeholder="رقم السيارة (فارغ=جماعي)" class="p-2 border rounded text-center font-bold">
+                        <input type="text" id="adm-vio-driver" placeholder="اسم السائق" class="p-2 border rounded text-center">
+                        <input type="text" id="adm-vio-rule" placeholder="قاعدة معينة (اختياري)" class="p-2 border rounded text-center col-span-2">
+                        <input type="text" id="adm-vio-desc" placeholder="بيان المخالفة بالتفصيل" class="p-2 border rounded text-center col-span-2">
+                        <input type="number" id="adm-vio-amount" placeholder="المبلغ بالجنيه" class="p-2 border rounded text-center font-bold text-rose-600 col-span-2">
+                    </div>
+                    <button onclick="adminInsertViolation()" class="w-full bg-rose-600 text-white font-bold py-2 rounded text-xs hover:bg-rose-700">إدراج المخالفة</button>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow border space-y-3">
+                    <h4 class="text-xs font-black text-emerald-900 bg-emerald-50 p-2 rounded"><i class="fa-solid fa-file-csv"></i> استيراد/تصدير CSV</h4>
+                    <div class="space-y-2 text-xs">
+                        <div class="p-2 border border-dashed rounded bg-slate-50 text-center">
+                            <span class="block text-[10px] text-gray-500 font-bold mb-1">استيراد سيارات</span>
+                            <input type="file" id="csv-cars-file" accept=".csv" onchange="importCSVData(event,'cars')" class="w-full text-[10px]">
+                        </div>
+                        <div class="p-2 border border-dashed rounded bg-slate-50 text-center">
+                            <span class="block text-[10px] text-gray-500 font-bold mb-1">استيراد مخالفات</span>
+                            <input type="file" id="csv-vios-file" accept=".csv" onchange="importCSVData(event,'violations')" class="w-full text-[10px]">
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="exportDataToCSV('cars')" class="w-1/2 bg-slate-800 text-white font-bold py-1.5 rounded text-[11px]"><i class="fa-solid fa-download"></i> تصدير السيارات</button>
+                            <button onclick="exportDataToCSV('violations')" class="w-1/2 bg-slate-800 text-white font-bold py-1.5 rounded text-[11px]"><i class="fa-solid fa-download"></i> تصدير المخالفات</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow border space-y-4">
+                <div class="bg-indigo-50 p-2 rounded flex justify-between items-center">
+                    <h4 class="text-xs font-black text-indigo-900"><i class="fa-solid fa-calculator"></i> حسابات السائقين والخصومات</h4>
+                    <div class="flex gap-2 items-center text-xs">
+                        <input type="number" id="adm-mass-discount" placeholder="خصم جماعي" class="p-1 border rounded w-28 text-center text-emerald-600 font-bold">
+                        <button onclick="applyMassDriverDiscount()" class="bg-indigo-600 text-white px-2 py-1 rounded font-bold hover:bg-indigo-700">تطبيق للكل</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-right border">
+                        <thead class="bg-slate-100 font-bold"><tr><th class="p-2">السائق</th><th class="p-2">المخالفات</th><th class="p-2">الخصومات</th><th class="p-2">الصافي</th><th class="p-2 text-center">خصم</th></tr></thead>
+                        <tbody id="adm-driver-balances-tbody" class="divide-y"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow border space-y-3">
+                <h4 class="text-xs font-black text-slate-800"><i class="fa-solid fa-magnifying-glass-dollar"></i> استعلام الحسابات</h4>
+                <div class="flex gap-2">
+                    <input type="text" id="adm-acc-search" placeholder="رقم السيارة أو اسم السائق..." class="w-full p-2 border rounded-xl text-xs text-center font-bold">
+                    <button onclick="executeAdminAccountSearch()" class="bg-blue-600 text-white px-5 rounded-xl text-xs font-bold shadow whitespace-nowrap">بحث</button>
+                </div>
+                <div id="adm-acc-results-box" class="hidden bg-slate-50 p-3 rounded-lg border text-xs font-mono"></div>
+            </div>
+        </div>
+
+        <div id="sub-admin-cars" class="admin-tab-content hidden space-y-4">
+            <div class="bg-white p-5 rounded-xl shadow border space-y-3">
+                <h4 class="text-xs font-black text-slate-900"><i class="fa-solid fa-car"></i> إضافة / تعديل سيارة</h4>
+                <input type="hidden" id="adm-car-uid">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                    <input type="text" id="car-form-id" placeholder="رقم السيارة" class="p-2 border rounded text-center font-bold bg-amber-50">
+                    <input type="text" id="car-form-chassis" placeholder="رقم الشاسيه" class="p-2 border rounded text-center">
+                    <input type="text" id="car-form-motor" placeholder="رقم الموتور" class="p-2 border rounded text-center">
+                    <input type="text" id="car-form-type" placeholder="نوع السيارة" class="p-2 border rounded text-center">
+                    <input type="text" id="car-form-model" placeholder="موديل السيارة" class="p-2 border rounded text-center">
+                    <input type="date" id="car-form-expiry" class="p-2 border rounded text-center font-bold">
+                    <input type="text" id="car-form-company" placeholder="الشركة المالكة" class="p-2 border rounded text-center">
+                    <select id="car-form-ins-type" class="p-2 border rounded text-center"><option value="سائق">تأمين على السائق</option><option value="مبلغ">تأمين بمبلغ</option></select>
+                    <input type="text" id="car-form-driver-name" placeholder="اسم السائق" class="p-2 border rounded text-center col-span-2">
+                    <input type="number" id="car-form-ins-amount" placeholder="مبلغ التأمين" class="p-2 border rounded text-center col-span-2">
+                </div>
+                <div class="flex gap-2 justify-end">
+                    <button onclick="clearCarForm()" class="bg-gray-200 text-gray-700 font-bold px-4 py-2 rounded text-xs">مسح</button>
+                    <button onclick="saveCarData()" class="bg-blue-600 text-white font-bold px-6 py-2 rounded text-xs shadow hover:bg-blue-700">حفظ 💾</button>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow border overflow-x-auto">
+                <table class="w-full text-xs text-right">
+                    <thead class="bg-slate-100 font-bold"><tr><th class="p-2">السيارة</th><th class="p-2">الشركة</th><th class="p-2">السائق</th><th class="p-2">الترخيص</th><th class="p-2">الشاسيه</th><th class="p-2 text-center">تحكم</th></tr></thead>
+                    <tbody id="adm-cars-master-tbody" class="divide-y"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="sub-admin-licenses" class="admin-tab-content hidden space-y-6">
+            <div class="bg-white p-4 rounded-xl border">
+                <input type="text" id="license-search-input" onkeyup="filterLicensesReport()" placeholder="بحث برقم السيارة..." class="w-full p-2 border rounded text-xs text-center font-bold">
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow border border-red-200">
+                <h5 class="text-xs font-black text-red-700 bg-red-50 p-2 rounded mb-2"><i class="fa-solid fa-circle-xmark"></i> تراخيص منتهية ❌</h5>
+                <div class="overflow-x-auto"><table class="w-full text-xs text-right"><thead class="bg-slate-50 font-bold"><tr><th class="p-2">السيارة</th><th class="p-2">الشركة</th><th class="p-2">تاريخ الانتهاء</th><th class="p-2">الأيام</th></tr></thead><tbody id="tbl-license-expired" class="divide-y"></tbody></table></div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow border border-amber-200">
+                <h5 class="text-xs font-black text-amber-700 bg-amber-50 p-2 rounded mb-2"><i class="fa-solid fa-triangle-exclamation"></i> تنتهي قريباً ⚠️</h5>
+                <div class="overflow-x-auto"><table class="w-full text-xs text-right"><thead class="bg-slate-50 font-bold"><tr><th class="p-2">السيارة</th><th class="p-2">الشركة</th><th class="p-2">تاريخ الانتهاء</th><th class="p-2">الأيام</th></tr></thead><tbody id="tbl-license-soon" class="divide-y"></tbody></table></div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow border border-green-200">
+                <h5 class="text-xs font-black text-green-700 bg-green-50 p-2 rounded mb-2"><i class="fa-solid fa-circle-check"></i> سارية ✅</h5>
+                <div class="overflow-x-auto"><table class="w-full text-xs text-right"><thead class="bg-slate-50 font-bold"><tr><th class="p-2">السيارة</th><th class="p-2">الشركة</th><th class="p-2">تاريخ الانتهاء</th><th class="p-2">الأيام المتبقية</th></tr></thead><tbody id="tbl-license-active" class="divide-y"></tbody></table></div>
+            </div>
+        </div>
+
+        <div id="sub-admin-sups" class="admin-tab-content hidden space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white p-4 rounded-xl shadow border space-y-3 text-xs">
+                    <h5 class="font-black text-slate-900 border-b pb-1">تعيين مشرف</h5>
+                    <input type="hidden" id="sup-form-uid">
+                    <input type="text" id="sup-form-name" placeholder="اسم المشرف" class="w-full p-2 border rounded text-center">
+                    <input type="password" id="sup-form-password" placeholder="كلمة مرور المشرف 🔑" class="w-full p-2 border rounded text-center font-mono tracking-widest">
+                    <input type="number" id="sup-form-custody" placeholder="العهدة / مبلغ إضافي" class="w-full p-2 border rounded text-center text-emerald-600 font-bold">
+                    <button onclick="saveSupervisorData()" class="w-full bg-slate-900 text-white font-bold py-2 rounded">حفظ المشرف</button>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow border md:col-span-2 overflow-x-auto">
+                    <table class="w-full text-xs text-right">
+                        <thead class="bg-slate-100 font-bold"><tr><th class="p-2">المشرف</th><th class="p-2">العهدة</th><th class="p-2 text-center">الباسورد</th><th class="p-2 text-center">إجراءات</th></tr></thead>
+                        <tbody id="adm-sups-master-tbody" class="divide-y"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="sub-admin-security" class="admin-tab-content hidden max-w-lg mx-auto bg-white p-6 rounded-xl border space-y-4">
+            <h4 class="text-xs font-black text-slate-900 text-center border-b pb-2">إدارة كلمات مرور النظام</h4>
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-blue-700 block">🔐 باسورد الأدمن</label>
+                <input type="password" id="adm-new-password-field" placeholder="باسورد الأدمن الجديد" class="w-full p-2 border text-center text-xs rounded-lg">
+                <button onclick="updateAdminSystemPassword()" class="w-full bg-blue-900 text-white font-bold text-xs py-2 rounded-lg">حفظ</button>
+            </div>
+            <div class="space-y-2 border-t pt-4">
+                <label class="text-xs font-bold text-orange-700 block">🚦 باسورد مدير الحركة</label>
+                <input type="password" id="traffic-new-password-field" placeholder="باسورد مدير الحركة الجديد" class="w-full p-2 border text-center text-xs rounded-lg">
+                <button onclick="updateTrafficManagerPassword()" class="w-full bg-orange-600 text-white font-bold text-xs py-2 rounded-lg">حفظ</button>
+            </div>
+            <div class="space-y-2 border-t pt-4">
+                <label class="text-xs font-bold text-emerald-700 block">💰 باسورد المدير المالي</label>
+                <input type="password" id="finance-new-password-field" placeholder="باسورد المدير المالي الجديد" class="w-full p-2 border text-center text-xs rounded-lg">
+                <button onclick="updateFinanceManagerPassword()" class="w-full bg-emerald-700 text-white font-bold text-xs py-2 rounded-lg">حفظ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======== شاشة المشرف ======== -->
+<div id="screen-supervisor" class="main-screen hidden space-y-6">
+    <div id="sup-auth-barrier" class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl border text-center space-y-4">
+        <div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl border"><i class="fa-solid fa-user-gear"></i></div>
+        <h3 class="text-base font-black">شاشة المشرف الميداني</h3>
+        <p class="text-xs text-gray-500">اختر اسمك وأدخل كلمة مرورك</p>
+        <select id="sup-auth-select" class="w-full p-2.5 border rounded-xl text-xs font-bold bg-slate-50"></select>
+        <input type="password" id="sup-auth-pass" placeholder="كلمة مرور المشرف..." class="w-full p-2.5 text-center border rounded-xl font-mono tracking-widest text-sm" onkeydown="if(event.key==='Enter')verifySupervisorAccess()">
+        <button onclick="verifySupervisorAccess()" class="w-full bg-emerald-600 text-white font-bold py-2 rounded-xl text-xs hover:bg-emerald-700">دخول</button>
+    </div>
+
+    <div id="sup-real-content" class="hidden space-y-6">
+        <div class="bg-white p-4 rounded-xl shadow border flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-2 text-xs font-bold">
+                <label class="text-gray-500">المشرف الحالي:</label>
+                <strong id="sup-identity-display" class="text-emerald-800 text-sm"></strong>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-50 px-6 py-2 rounded-xl border border-emerald-200 text-center">
+                    <span class="text-[10px] text-gray-500 block font-bold">العهدة المتوفرة:</span>
+                    <strong id="sup-available-custody-lbl" class="text-xl font-black text-emerald-700">0.00 ج.م</strong>
+                </div>
+                <button onclick="logoutSupervisor()" class="bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-200 hover:bg-red-200">خروج</button>
+            </div>
+        </div>
+
+        <div class="bg-amber-50/60 border border-amber-200 p-4 rounded-xl space-y-2">
+            <h4 class="text-xs font-black text-amber-900"><i class="fa-solid fa-triangle-exclamation text-amber-600 animate-pulse"></i> تنبيهات: سيارات منتهية أو قاربت على الانتهاء</h4>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-right bg-white border rounded">
+                    <thead class="bg-amber-100 font-bold"><tr><th class="p-2">رقم المركبة</th><th class="p-2">الشركة</th><th class="p-2">تاريخ الترخيص</th><th class="p-2 text-center">إجراء</th></tr></thead>
+                    <tbody id="sup-urgent-cars-tbody" class="divide-y"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow border space-y-4">
+            <h4 class="text-xs font-black text-blue-950 bg-blue-50 p-2 rounded"><i class="fa-solid fa-file-invoice-dollar"></i> إنشاء بند مصروف حركة سيارة</h4>
+            <div class="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs bg-slate-50 p-3 rounded-lg border">
+                <div><label class="block text-[10px] text-gray-500 mb-0.5">التاريخ:</label><input type="date" id="exp-form-date" class="w-full p-1.5 border rounded font-bold text-center"></div>
+                <div><label class="block text-[10px] text-gray-500 mb-0.5">رقم السيارة:</label><input type="text" id="exp-form-car" placeholder="5724" class="w-full p-1.5 border rounded font-bold text-center text-blue-900"></div>
+                <div><label class="block text-[10px] text-gray-500 mb-0.5">مكان المرور:</label><input type="text" id="exp-form-place" placeholder="مرور الزقازيق" class="w-full p-1.5 border rounded text-center"></div>
+                <div><label class="block text-[10px] text-gray-500 mb-0.5">بيان الترخيص:</label><input type="text" id="exp-form-license-desc" placeholder="تجديد/فحص" class="w-full p-1.5 border rounded text-center"></div>
+                <div><label class="block text-[10px] text-gray-500 mb-0.5">القيمة (جنيه):</label><input type="number" id="exp-form-amount" placeholder="المبلغ" class="w-full p-1.5 border rounded font-bold text-center text-emerald-600"></div>
+                <div><label class="block text-[10px] text-gray-500 mb-0.5">بيان البند:</label><input type="text" id="exp-form-desc" placeholder="رسوم/فحص" class="w-full p-1.5 border rounded text-center"></div>
+            </div>
+            <div class="flex justify-end">
+                <button onclick="createNewCarExpenseInvoice()" class="bg-blue-600 text-white font-black text-xs px-6 py-2 rounded-xl shadow hover:bg-blue-700">فتح حركة المصروف ➕</button>
+            </div>
+
+            <div id="sup-active-invoice-zone" class="hidden border border-blue-200 rounded-xl p-4 space-y-3 bg-slate-50/50">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <span class="text-xs font-black text-slate-900">فاتورة السيارة: <strong id="lbl-active-inv-car" class="text-blue-700 text-sm"></strong></span>
+                    <span class="text-[10px] bg-slate-200 px-2 py-0.5 rounded text-gray-700" id="lbl-active-inv-meta"></span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-white p-2 rounded border text-xs items-end">
+                    <div><label class="block text-[10px] text-gray-400 mb-0.5">مبلغ البند</label><input type="number" id="sub-item-amount" placeholder="جنيه" class="w-full p-1.5 border rounded text-center font-bold text-emerald-600"></div>
+                    <div><label class="block text-[10px] text-gray-400 mb-0.5">بيان البند</label><input type="text" id="sub-item-desc" placeholder="اكتب البيان..." class="w-full p-1.5 border rounded text-center"></div>
+                    <button onclick="appendItemToActiveInvoice()" class="bg-slate-800 text-white font-bold py-1.5 rounded">إدراج البند</button>
+                </div>
+                <table class="w-full text-xs text-right bg-white border rounded">
+                    <thead class="bg-slate-100 font-bold"><tr><th class="p-2">المبلغ</th><th class="p-2">البيان</th><th class="p-2 text-center">حذف</th></tr></thead>
+                    <tbody id="active-invoice-items-tbody" class="divide-y"></tbody>
+                </table>
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-2 pt-2 border-t">
+                    <div class="text-xs font-black text-blue-950">الإجمالي: <span id="lbl-active-inv-total" class="text-base text-blue-700">0</span> جنيه</div>
+                    <button onclick="submitInvoiceForApproval()" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-xs px-6 py-2.5 rounded-lg shadow-md">
+                        <i class="fa-solid fa-paper-plane ml-1"></i> إرسال لاعتماد مدير الحركة
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- سجل فواتير المشرف -->
+        <div class="bg-white p-5 rounded-xl shadow border space-y-3">
+            <h4 class="text-xs font-black text-slate-800 bg-slate-50 p-2 rounded flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-blue-600"></i> سجل فواتيري السابقة</h4>
+            <div id="sup-invoices-list" class="space-y-2 text-xs max-h-64 overflow-y-auto">
+                <p class="text-center text-gray-400 p-4">لا توجد فواتير سابقة.</p>
+            </div>
+        </div>
+
+        <div class="bg-rose-50 border border-rose-200 p-5 rounded-xl space-y-3">
+            <h4 class="text-xs font-black text-rose-950"><i class="fa-solid fa-bolt"></i> تسجيل مخالفة ميدانية فورية</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
+                <input type="text" id="sup-instant-car" placeholder="رقم السيارة" class="p-2 border rounded text-center font-bold">
+                <input type="text" id="sup-instant-driver" placeholder="اسم السائق" class="p-2 border rounded text-center">
+                <input type="text" id="sup-instant-desc" placeholder="وصف المخالفة" class="p-2 border rounded text-center">
+                <div class="flex gap-1">
+                    <input type="number" id="sup-instant-amount" placeholder="المبلغ" class="w-full p-2 border rounded text-center font-bold text-rose-600">
+                    <button onclick="supRegisterInstantViolation()" class="bg-rose-600 text-white font-bold px-4 rounded hover:bg-rose-700">إدراج</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======== شاشة مدير الحركة ======== -->
+<div id="screen-traffic" class="main-screen hidden space-y-6">
+    <div id="traffic-auth-barrier" class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl border text-center space-y-4">
+        <div class="w-16 h-16 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mx-auto text-2xl border"><i class="fa-solid fa-traffic-light"></i></div>
+        <h3 class="text-base font-black">شاشة مدير الحركة</h3>
+        <p class="text-xs text-gray-500">اعتماد مصاريف المشرفين الميدانيين</p>
+        <input type="password" id="traffic-login-pass" placeholder="كلمة مرور مدير الحركة..." class="w-full p-2.5 text-center border rounded-xl font-mono tracking-widest text-sm" onkeydown="if(event.key==='Enter')verifyTrafficManagerAccess()">
+        <button onclick="verifyTrafficManagerAccess()" class="w-full bg-orange-600 text-white font-bold py-2 rounded-xl text-xs hover:bg-orange-700">دخول</button>
+    </div>
+
+    <div id="traffic-real-content" class="hidden space-y-6">
+        <div class="flex justify-between items-center bg-gradient-to-l from-orange-50 to-amber-50 p-4 rounded-xl border border-orange-200">
+            <div>
+                <h2 class="text-base font-black text-orange-900"><i class="fa-solid fa-traffic-light text-orange-600 ml-1"></i> لوحة مدير الحركة - اعتماد المصاريف</h2>
+                <p class="text-xs text-gray-500 mt-0.5">مصاريف المشرفين في انتظار موافقتك</p>
+            </div>
+            <div class="flex gap-2 items-center">
+                <span id="traffic-pending-count" class="bg-orange-500 text-white text-xs font-black px-3 py-1 rounded-full">0 طلب</span>
+                <button onclick="logoutTrafficManager()" class="bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-200 hover:bg-red-200">خروج</button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow border overflow-hidden">
+            <div class="bg-orange-50 p-3 border-b"><h4 class="text-xs font-black text-orange-900"><i class="fa-solid fa-clock text-orange-600"></i> فواتير في انتظار الاعتماد</h4></div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-right">
+                    <thead class="bg-slate-100 font-bold"><tr><th class="p-2">رقم الفاتورة</th><th class="p-2">التاريخ</th><th class="p-2">السيارة</th><th class="p-2">المشرف</th><th class="p-2">مكان الترخيص</th><th class="p-2 text-center">الإجمالي</th><th class="p-2 text-center">تفاصيل</th><th class="p-2 text-center">القرار</th></tr></thead>
+                    <tbody id="traffic-pending-tbody" class="divide-y"></tbody>
+                </table>
+            </div>
+            <div id="traffic-no-pending" class="hidden p-8 text-center text-gray-400 text-xs"><i class="fa-solid fa-check-circle text-green-400 text-3xl mb-2 block"></i>لا توجد فواتير معلقة حالياً</div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow border overflow-hidden">
+            <div class="bg-slate-50 p-3 border-b"><h4 class="text-xs font-black text-slate-700"><i class="fa-solid fa-history text-slate-500"></i> سجل القرارات السابقة</h4></div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-right">
+                    <thead class="bg-slate-100 font-bold"><tr><th class="p-2">رقم الفاتورة</th><th class="p-2">التاريخ</th><th class="p-2">السيارة</th><th class="p-2 text-center">الإجمالي</th><th class="p-2 text-center">الحالة</th></tr></thead>
+                    <tbody id="traffic-history-tbody" class="divide-y"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======== شاشة المدير المالي ======== -->
+<div id="screen-finance" class="main-screen hidden space-y-6">
+    <div id="finance-auth-barrier" class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl border text-center space-y-4">
+        <div class="w-16 h-16 bg-emerald-50 text-emerald-700 rounded-full flex items-center justify-center mx-auto text-2xl border"><i class="fa-solid fa-wallet"></i></div>
+        <h3 class="text-base font-black">شاشة المدير المالي</h3>
+        <p class="text-xs text-gray-500">طباعة الفواتير المعتمدة والخصم من العهدة</p>
+        <input type="password" id="finance-login-pass" placeholder="كلمة مرور المدير المالي..." class="w-full p-2.5 text-center border rounded-xl font-mono tracking-widest text-sm" onkeydown="if(event.key==='Enter')verifyFinanceManagerAccess()">
+        <button onclick="verifyFinanceManagerAccess()" class="w-full bg-emerald-600 text-white font-bold py-2 rounded-xl text-xs hover:bg-emerald-700">دخول</button>
+    </div>
+
+    <div id="finance-real-content" class="hidden space-y-6">
+        <div class="flex justify-between items-center bg-gradient-to-l from-emerald-50 to-teal-50 p-4 rounded-xl border border-emerald-200">
+            <div>
+                <h2 class="text-base font-black text-emerald-900"><i class="fa-solid fa-wallet text-emerald-600 ml-1"></i> لوحة المدير المالي - طباعة وخصم العهدة</h2>
+                <p class="text-xs text-gray-500 mt-0.5">الفواتير المعتمدة من مدير الحركة جاهزة للطباعة والخصم</p>
+            </div>
+            <div class="flex gap-2 items-center">
+                <span id="finance-approved-count" class="bg-emerald-500 text-white text-xs font-black px-3 py-1 rounded-full">0 فاتورة</span>
+                <button onclick="logoutFinanceManager()" class="bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-200 hover:bg-red-200">خروج</button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow border overflow-hidden">
+            <div class="bg-emerald-50 p-3 border-b"><h4 class="text-xs font-black text-emerald-900"><i class="fa-solid fa-check-double text-emerald-600"></i> فواتير معتمدة - جاهزة للطباعة والخصم من العهدة</h4></div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-right">
+                    <thead class="bg-slate-100 font-bold"><tr><th class="p-2">رقم الفاتورة</th><th class="p-2">التاريخ</th><th class="p-2">السيارة</th><th class="p-2">المشرف</th><th class="p-2">التفاصيل</th><th class="p-2 text-center">الإجمالي</th><th class="p-2 text-center">إجراء</th></tr></thead>
+                    <tbody id="finance-approved-tbody" class="divide-y"></tbody>
+                </table>
+            </div>
+            <div id="finance-no-approved" class="hidden p-8 text-center text-gray-400 text-xs"><i class="fa-solid fa-inbox text-gray-300 text-3xl mb-2 block"></i>لا توجد فواتير معتمدة حالياً</div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow border overflow-hidden">
+            <div class="bg-slate-50 p-3 border-b"><h4 class="text-xs font-black text-slate-700"><i class="fa-solid fa-receipt text-slate-500"></i> سجل الفواتير المطبوعة</h4></div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-right">
+                    <thead class="bg-slate-100 font-bold"><tr><th class="p-2">رقم الفاتورة</th><th class="p-2">التاريخ</th><th class="p-2">السيارة</th><th class="p-2 text-center">الإجمالي</th><th class="p-2 text-center">إعادة طباعة</th></tr></thead>
+                    <tbody id="finance-history-tbody" class="divide-y"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======== شاشة التقارير ======== -->
+<div id="screen-reports" class="main-screen hidden bg-white p-6 rounded-2xl shadow border space-y-6">
+    <div class="border-b pb-2">
+        <h2 class="text-base font-black text-slate-900"><i class="fa-solid fa-chart-line text-blue-700"></i> مركز التقارير الشامل</h2>
+        <p class="text-[11px] text-gray-400">بيانات دقيقة لحظياً لعام 2026</p>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs font-bold">
+        <button onclick="switchReportTab('rep-vios')" id="tab-rep-vios" class="p-2.5 border rounded-xl bg-slate-50">مخالفات الأسطول</button>
+        <button onclick="switchReportTab('rep-drivers')" id="tab-rep-drivers" class="p-2.5 border rounded-xl bg-slate-50">حساب السائقين</button>
+        <button onclick="switchReportTab('rep-licenses-state')" id="tab-rep-licenses-state" class="p-2.5 border rounded-xl bg-slate-50">التراخيص</button>
+        <button onclick="switchReportTab('rep-custodies')" id="tab-rep-custodies" class="p-2.5 border rounded-xl bg-slate-50">عهود المشرفين</button>
+        <button onclick="switchReportTab('rep-invoices-history')" id="tab-rep-invoices-history" class="p-2.5 border rounded-xl bg-slate-50">سجل الفواتير</button>
+    </div>
+    <div id="zone-rep-vios" class="report-zone hidden space-y-3">
+        <input type="text" id="search-vios-filter" onkeyup="renderReportsModule('vios')" placeholder="بحث..." class="w-full p-2 border rounded text-xs text-center font-bold bg-slate-50">
+        <div class="overflow-x-auto"><table class="w-full text-xs text-right border"><thead class="bg-slate-100 font-bold"><tr><th class="p-2">التاريخ</th><th class="p-2">السيارة</th><th class="p-2">السائق</th><th class="p-2">البيان</th><th class="p-2">المبلغ</th></tr></thead><tbody id="tbody-rep-vios" class="divide-y"></tbody></table></div>
+    </div>
+    <div id="zone-rep-drivers" class="report-zone hidden">
+        <div class="overflow-x-auto"><table class="w-full text-xs text-right border"><thead class="bg-slate-100 font-bold"><tr><th class="p-2">السائق</th><th class="p-2">المخالفات</th><th class="p-2">الخصومات</th><th class="p-2">الصافي</th></tr></thead><tbody id="tbody-rep-drivers" class="divide-y"></tbody></table></div>
+    </div>
+    <div id="zone-rep-licenses-state" class="report-zone hidden">
+        <div class="overflow-x-auto"><table class="w-full text-xs text-right border"><thead class="bg-slate-100 font-bold"><tr><th class="p-2">السيارة</th><th class="p-2">الشركة</th><th class="p-2">تاريخ الانتهاء</th><th class="p-2">الأيام المتبقية</th></tr></thead><tbody id="tbody-rep-licenses-state" class="divide-y"></tbody></table></div>
+    </div>
+    <div id="zone-rep-custodies" class="report-zone hidden">
+        <div class="overflow-x-auto"><table class="w-full text-xs text-right border"><thead class="bg-slate-100 font-bold"><tr><th class="p-2">المشرف</th><th class="p-2">العهدة المتبقية</th><th class="p-2 text-center">الوضعية</th></tr></thead><tbody id="tbody-rep-custodies" class="divide-y"></tbody></table></div>
+    </div>
+    <div id="zone-rep-invoices-history" class="report-zone hidden space-y-2">
+        <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-slate-600">سجل جميع الفواتير</span>
+            <button onclick="exportInvoicesToCSV()" class="bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-800"><i class="fa-solid fa-file-csv ml-1"></i> تصدير Excel/CSV</button>
+        </div>
+        <div class="overflow-x-auto"><table class="w-full text-xs text-right border"><thead class="bg-slate-100 font-bold"><tr><th class="p-2">رقم الفاتورة</th><th class="p-2">التاريخ</th><th class="p-2">السيارة</th><th class="p-2">المشرف</th><th class="p-2">التفاصيل</th><th class="p-2 text-center">الإجمالي</th><th class="p-2 text-center">الحالة</th><th class="p-2 text-center">طباعة</th></tr></thead><tbody id="tbody-rep-invoices-history" class="divide-y"></tbody></table></div>
+    </div>
+</div>
+</main>
+
+<!-- ======== منطقة الطباعة ======== -->
+<div id="print-invoice-zone" class="hidden p-6 font-serif text-black max-w-2xl mx-auto bg-white" style="border:3px double #7a5c1e;">
+    <!-- رأس الفاتورة -->
+    <div class="flex justify-between items-center pb-4 border-b-2" style="border-color:#7a5c1e;">
+        <div class="text-right">
+            <div class="text-lg font-black" style="color:#7a5c1e;">EL BANNA GROUP</div>
+            <div class="text-xs font-bold text-gray-700">شركة البنا جروب</div>
+            <div class="text-[10px] text-gray-500">Since 1974 — منذ عام 1974</div>
+        </div>
+        <img src="logo.png" alt="El Banna Group" style="height:70px;" onerror="this.style.display='none'">
+        <div class="text-left text-xs text-gray-600 space-y-0.5">
+            <div class="font-bold text-sm" style="color:#7a5c1e;">وصل مصروفات ترخيص</div>
+            <div>تاريخ الطباعة: <span id="prt-print-date" class="font-mono"></span></div>
+            <div>رقم الوصل: <span id="prt-inv-id" class="font-mono font-bold"></span></div>
+        </div>
+    </div>
+    <!-- بيانات الفاتورة -->
+    <div class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs font-bold pt-4 pb-4 border-b border-dashed" style="border-color:#7a5c1e;">
+        <div class="flex gap-1"><span class="text-gray-500 font-normal">التاريخ:</span> <span id="prt-inv-date" class="font-mono"></span></div>
+        <div class="flex gap-1"><span class="text-gray-500 font-normal">رقم المركبة:</span> <span id="prt-inv-car" class="text-blue-900"></span></div>
+        <div class="flex gap-1"><span class="text-gray-500 font-normal">مكان الفحص/المرور:</span> <span id="prt-inv-place"></span></div>
+        <div class="flex gap-1"><span class="text-gray-500 font-normal">بيان الترخيص:</span> <span id="prt-inv-license-desc"></span></div>
+        <div class="flex gap-1 col-span-2"><span class="text-gray-500 font-normal">المشرف المسؤول:</span> <span id="prt-inv-supervisor" class="text-emerald-800"></span></div>
+    </div>
+    <!-- بنود الفاتورة -->
+    <div class="pt-3">
+        <table class="w-full text-xs text-right border" style="border-color:#7a5c1e;">
+            <thead><tr style="background:#f5ead6;border-bottom:2px solid #7a5c1e;" class="font-bold"><th class="p-2 border-l text-center w-1/4" style="border-color:#7a5c1e;">المبلغ (جنيه)</th><th class="p-2">البيان التفصيلي للمصروف</th></tr></thead>
+            <tbody id="prt-inv-items-tbody" class="divide-y" style="border-color:#d4b896;"></tbody>
+        </table>
+    </div>
+    <!-- الإجمالي -->
+    <div class="mt-4 flex justify-between items-center p-3 rounded font-bold" style="background:#f5ead6;border:1.5px solid #7a5c1e;">
+        <span class="text-xs">إجمالي المبلغ المنصرف من العهدة:</span>
+        <strong class="text-base" style="color:#7a5c1e;"><span id="prt-inv-total-lbl">0</span> جنيه مصري لا غير ✦</strong>
+    </div>
+    <!-- التوقيعات -->
+    <div class="mt-10 grid grid-cols-3 gap-4 text-[11px] font-bold text-center">
+        <div class="border-t-2 pt-2" style="border-color:#7a5c1e;">
+            <div style="color:#7a5c1e;">توقيع المشرف الميداني</div>
+            <div class="mt-8 text-gray-400">........................</div>
+        </div>
+        <div class="border-t-2 pt-2" style="border-color:#7a5c1e;">
+            <div style="color:#7a5c1e;">اعتماد مدير الحركة</div>
+            <div class="mt-8 text-gray-400">........................</div>
+        </div>
+        <div class="border-t-2 pt-2" style="border-color:#7a5c1e;">
+            <div style="color:#7a5c1e;">اعتماد المدير المالي</div>
+            <div class="mt-8 text-gray-400">........................</div>
+        </div>
+    </div>
+    <!-- تذييل الفاتورة -->
+    <div class="mt-6 pt-3 border-t text-center text-[10px] text-gray-500" style="border-color:#d4b896;">
+        شركة البنا جروب — EL BANNA GROUP &nbsp;|&nbsp; تطوير: أ/ فتحي صابر &nbsp;|&nbsp; نظام إدارة الأسطول الرقمي 2026
+    </div>
+    <center class="mt-4 no-print">
+        <button onclick="window.print()" class="bg-yellow-800 text-white px-6 py-2 rounded text-xs font-bold shadow-md ml-2"><i class="fa-solid fa-print"></i> طباعة</button>
+        <button onclick="closePrintInvoiceZone()" class="bg-gray-200 text-gray-800 px-4 py-2 rounded text-xs font-bold">إغلاق</button>
+    </center>
+</div>
+
+<!-- مودال تفاصيل الفاتورة -->
+<div id="invoice-details-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4 space-y-3">
+        <div class="flex justify-between items-center border-b pb-2">
+            <h4 class="font-black text-slate-900 text-sm" id="modal-inv-title">تفاصيل الفاتورة</h4>
+            <button onclick="closeInvoiceModal()" class="text-gray-400 hover:text-gray-700 text-xl font-bold">✕</button>
+        </div>
+        <div id="modal-inv-items" class="text-xs space-y-1 max-h-64 overflow-y-auto"></div>
+        <div class="border-t pt-2 flex justify-between font-black text-sm">
+            <span>الإجمالي:</span><span id="modal-inv-total" class="text-blue-700"></span>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==========================================
+// ⚙️ Firebase + LocalStorage Fallback
+// ==========================================
+const firebaseConfig = {
+    apiKey: "AIzaSyAfU8T6aOt1odA2Vr68DlW8i0H4mjCKK1M",
+    authDomain: "carinvoic-de2cf.firebaseapp.com",
+    databaseURL: "https://carinvoic-de2cf-default-rtdb.firebaseio.com",
+    projectId: "carinvoic-de2cf",
+    storageBucket: "carinvoic-de2cf.firebasestorage.app",
+    messagingSenderId: "481790177014",
+    appId: "1:481790177014:web:5ea335bf7e9e6445da46d7"
+};
+
+let db;
+try {
+    if (firebaseConfig.apiKey !== "YOUR_API_KEY_PLACEHOLDER") {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.database();
+    } else { setupFallbackLocalDatabase(); }
+} catch (e) { setupFallbackLocalDatabase(); }
+
+let systemData = { cars:{}, violations:{}, supervisors:{}, invoices:{}, config:{ adminPass:"1234", trafficManagerPass:"5678", financeManagerPass:"9999" } };
+let activeInvoiceData = null;
+let currentSelectedSupervisorKey = "";
+let currentSupervisorName = "";
+let isAdminAuthenticated = false;
+let isTrafficAuthenticated = false;
+let isFinanceAuthenticated = false;
+let lastPrintedScreen = 'reports';
+
+function setupFallbackLocalDatabase() {
+    if(!localStorage.getItem('fleet_backup_db')) {
+        localStorage.setItem('fleet_backup_db', JSON.stringify({
+            cars: {
+                "c1":{ id:"8245", chassis:"SH10245", motor:"M9082", type:"جامبو", model:"2023", expiry:"2026-04-10", company:"مصر للتفريخ", insType:"سائق", driverName:"عادل عبدالنبى", insAmount:500 },
+                "c2":{ id:"5724", chassis:"SH77412", motor:"M5532", type:"دبابة", model:"2022", expiry:"2026-02-06", company:"فارم فروتس", insType:"مبلغ", driverName:"محمد احمد حسانين", insAmount:2000 },
+                "c3":{ id:"8265", chassis:"SH99521", motor:"M3310", type:"ميكروباص", model:"2024", expiry:"2026-06-15", company:"فارم فروتس", insType:"سائق", driverName:"هشام حمدان حسن", insAmount:0 }
+            },
+            violations: {
+                "v1":{ date:"2026-02-06", car:"5724", driver:"محمد احمد حسانين", desc:"رادار طريق بلبيس الصحراوى الكيلو 17", amount:700 },
+                "v2":{ date:"2026-03-12", car:"8245", driver:"عادل عبدالنبى", desc:"حزام أمان كمين منيا القمح", amount:400 }
+            },
+            supervisors: {
+                "s1":{ name:"أحمد فتحي (المرور الرئيسي)", custody:12500, password:"1111" },
+                "s2":{ name:"فتحي صابر (العاشر من رمضان)", custody:6000, password:"2222" }
+            },
+            invoices: {},
+            config:{ adminPass:"1234", trafficManagerPass:"5678", financeManagerPass:"9999" }
+        }));
+    }
+    db = {
+        ref: function(path) {
+            return {
+                on: function(event, callback) {
+                    let d = JSON.parse(localStorage.getItem('fleet_backup_db'));
+                    let sub = d;
+                    if(path && path !== "/") path.split('/').forEach(k=>{ if(sub) sub=sub[k]; });
+                    callback({ val:()=>sub });
+                },
+                set: function(value, callback) {
+                    let d = JSON.parse(localStorage.getItem('fleet_backup_db'));
+                    if(!path || path==="/") { localStorage.setItem('fleet_backup_db', JSON.stringify(value)); }
+                    else {
+                        let keys = path.split('/'), cur = d;
+                        for(let i=0;i<keys.length-1;i++){ if(!cur[keys[i]]) cur[keys[i]]={};  cur=cur[keys[i]]; }
+                        cur[keys[keys.length-1]] = value;
+                        localStorage.setItem('fleet_backup_db', JSON.stringify(d));
+                    }
+                    if(callback) callback();
+                    setTimeout(()=>{ syncAllDataStateFromServer(JSON.parse(localStorage.getItem('fleet_backup_db'))); }, 50);
+                    return Promise.resolve();
+                },
+                push: function(value) {
+                    let d = JSON.parse(localStorage.getItem('fleet_backup_db'));
+                    let parts = path.split('/'), cur = d;
+                    parts.forEach(p=>{ if(!cur[p]) cur[p]={}; cur=cur[p]; });
+                    let nk = "gen_"+Math.random().toString(36).substr(2,9);
+                    cur[nk] = value;
+                    localStorage.setItem('fleet_backup_db', JSON.stringify(d));
+                    setTimeout(()=>{ syncAllDataStateFromServer(JSON.parse(localStorage.getItem('fleet_backup_db'))); }, 50);
+                    return Promise.resolve({ key:nk });
+                }
+            };
+        }
+    };
+}
+
+db.ref("/").on("value", (snapshot)=>{ const v=snapshot.val(); if(v) syncAllDataStateFromServer(v); });
+
+function syncAllDataStateFromServer(data) {
+    systemData = data || { cars:{}, violations:{}, supervisors:{}, invoices:{}, config:{adminPass:"1234",trafficManagerPass:"5678",financeManagerPass:"9999"} };
+    if(!systemData.config) systemData.config = { adminPass:"1234", trafficManagerPass:"5678", financeManagerPass:"9999" };
+    if(!systemData.config.trafficManagerPass) systemData.config.trafficManagerPass = "5678";
+    if(!systemData.config.financeManagerPass) systemData.config.financeManagerPass = "9999";
+
+    renderAdminCarsMasterTable();
+    renderAdminDriverBalancesTable();
+    renderLicensesCategorizedTables();
+    renderAdminSupervisorsTable();
+    populateSupervisorAuthSelect();
+    if(isTrafficAuthenticated) renderTrafficManagerScreen();
+    if(isFinanceAuthenticated) renderFinanceManagerScreen();
+    renderReportsModule('vios');
+    renderReportsModule('drivers');
+    renderReportsModule('licenses');
+    renderReportsModule('custodies');
+    renderReportsModule('invoices');
+    if(currentSelectedSupervisorKey && systemData.supervisors[currentSelectedSupervisorKey]) {
+        document.getElementById('sup-available-custody-lbl').innerText = parseFloat(systemData.supervisors[currentSelectedSupervisorKey].custody||0).toLocaleString()+" ج.م";
+    }
+}
+
+// ==========================================
+// 🧭 التنقل
+// ==========================================
+function switchMainScreen(screenId) {
+    // ✅ تسجيل خروج تلقائي من الشاشة المحمية عند مغادرتها
+    const currentVisible = document.querySelector('.main-screen:not(.hidden)');
+    if (currentVisible) {
+        const leaving = currentVisible.id.replace('screen-', '');
+        if (leaving !== screenId) {
+            if (leaving === 'admin' && isAdminAuthenticated) {
+                isAdminAuthenticated = false;
+                document.getElementById('admin-auth-barrier').classList.remove('hidden');
+                document.getElementById('admin-real-content').classList.add('hidden');
+                document.getElementById('admin-login-pass').value = '';
+            }
+            if (leaving === 'supervisor' && currentSelectedSupervisorKey) {
+                logoutSupervisor();
+            }
+            if (leaving === 'traffic' && isTrafficAuthenticated) {
+                logoutTrafficManager();
+            }
+            if (leaving === 'finance' && isFinanceAuthenticated) {
+                logoutFinanceManager();
+            }
+        }
+    }
+    document.querySelectorAll('.main-screen').forEach(s=>s.classList.add('hidden'));
+    document.querySelectorAll('header button').forEach(b=>b.classList.remove('tab-active'));
+    document.getElementById('screen-'+screenId).classList.remove('hidden');
+    document.getElementById('nav-'+screenId).classList.add('tab-active');
+}
+
+// ==========================================
+// 🔐 المصادقة
+// ==========================================
+function verifyAdminAccess() {
+    if(document.getElementById('admin-login-pass').value === systemData.config.adminPass) {
+        isAdminAuthenticated = true;
+        document.getElementById('admin-auth-barrier').classList.add('hidden');
+        document.getElementById('admin-real-content').classList.remove('hidden');
+        switchAdminTab('sub-admin-vios');
+    } else alert("❌ كلمة المرور خاطئة!");
+}
+
+function populateSupervisorAuthSelect() {
+    const sel = document.getElementById('sup-auth-select');
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">-- اختر اسمك --</option>';
+    Object.keys(systemData.supervisors||{}).forEach(key=>{
+        sel.innerHTML += `<option value="${key}">${systemData.supervisors[key].name}</option>`;
+    });
+    if(prev) sel.value = prev;
+}
+
+function verifySupervisorAccess() {
+    const selKey = document.getElementById('sup-auth-select').value;
+    const typed = document.getElementById('sup-auth-pass').value;
+    if(!selKey) return alert("يرجى اختيار اسم المشرف أولاً!");
+    let sup = systemData.supervisors[selKey];
+    if(!sup) return alert("لم يتم العثور على المشرف!");
+    if(typed === (sup.password||"0000")) {
+        currentSelectedSupervisorKey = selKey;
+        currentSupervisorName = sup.name;
+        document.getElementById('sup-auth-barrier').classList.add('hidden');
+        document.getElementById('sup-real-content').classList.remove('hidden');
+        document.getElementById('sup-identity-display').innerText = sup.name;
+        document.getElementById('sup-available-custody-lbl').innerText = parseFloat(sup.custody||0).toLocaleString()+" ج.م";
+        renderLicensesCategorizedTables();
+    } else alert("❌ كلمة مرور المشرف خاطئة!");
+}
+
+function logoutSupervisor() {
+    currentSelectedSupervisorKey = ""; currentSupervisorName = "";
+    document.getElementById('sup-auth-barrier').classList.remove('hidden');
+    document.getElementById('sup-real-content').classList.add('hidden');
+    document.getElementById('sup-auth-pass').value = "";
+    document.getElementById('sup-auth-select').value = "";
+    document.getElementById('sup-active-invoice-zone').classList.add('hidden');
+    activeInvoiceData = null;
+}
+
+function verifyTrafficManagerAccess() {
+    if(document.getElementById('traffic-login-pass').value === systemData.config.trafficManagerPass) {
+        isTrafficAuthenticated = true;
+        document.getElementById('traffic-auth-barrier').classList.add('hidden');
+        document.getElementById('traffic-real-content').classList.remove('hidden');
+        renderTrafficManagerScreen();
+    } else alert("❌ كلمة مرور مدير الحركة خاطئة!");
+}
+
+function logoutTrafficManager() {
+    isTrafficAuthenticated = false;
+    document.getElementById('traffic-auth-barrier').classList.remove('hidden');
+    document.getElementById('traffic-real-content').classList.add('hidden');
+    document.getElementById('traffic-login-pass').value = "";
+}
+
+function verifyFinanceManagerAccess() {
+    if(document.getElementById('finance-login-pass').value === systemData.config.financeManagerPass) {
+        isFinanceAuthenticated = true;
+        document.getElementById('finance-auth-barrier').classList.add('hidden');
+        document.getElementById('finance-real-content').classList.remove('hidden');
+        renderFinanceManagerScreen();
+    } else alert("❌ كلمة مرور المدير المالي خاطئة!");
+}
+
+function logoutFinanceManager() {
+    isFinanceAuthenticated = false;
+    document.getElementById('finance-auth-barrier').classList.remove('hidden');
+    document.getElementById('finance-real-content').classList.add('hidden');
+    document.getElementById('finance-login-pass').value = "";
+}
+
+function switchAdminTab(tabId) {
+    document.querySelectorAll('.admin-tab-content').forEach(t=>t.classList.add('hidden'));
+    document.querySelectorAll('.border-b button').forEach(b=>b.classList.remove('bg-blue-900','text-white'));
+    document.getElementById(tabId).classList.remove('hidden');
+    const map = {'sub-admin-vios':'tab-admin-vios','sub-admin-cars':'tab-admin-cars','sub-admin-licenses':'tab-admin-licenses','sub-admin-sups':'tab-admin-sups','sub-admin-security':'tab-admin-security'};
+    if(map[tabId]) document.getElementById(map[tabId]).classList.add('bg-blue-900','text-white');
+}
+
+// ==========================================
+// 👑 وحدة الأدمن
+// ==========================================
+function adminInsertViolation() {
+    const carId=document.getElementById('adm-vio-car').value.trim();
+    const driver=document.getElementById('adm-vio-driver').value.trim();
+    const rule=document.getElementById('adm-vio-rule').value.trim();
+    const desc=document.getElementById('adm-vio-desc').value.trim();
+    const amount=parseFloat(document.getElementById('adm-vio-amount').value);
+    if(!desc||isNaN(amount)) return alert("الرجاء تعبئة بيان المخالفة وقيمتها!");
+    if(carId==="") {
+        if(confirm("تطبيق كمخالفة جماعية على كافة سيارات الأسطول؟")) {
+            Object.values(systemData.cars).forEach(c=>{
+                db.ref('violations').push({ date:new Date().toISOString().split('T')[0], car:c.id, driver:c.driverName||"سائق", desc:`[جماعية]: ${desc}`, amount });
+            });
+            alert("✅ تم تطبيق المخالفة الجماعية.");
+        }
+        return;
+    }
+    db.ref('violations').push({ date:new Date().toISOString().split('T')[0], car:carId, driver:driver||"غير محدد", desc:rule?`[قاعدة: ${rule}] ${desc}`:desc, amount });
+    alert("✅ تم إدراج المخالفة.");
+    ['adm-vio-car','adm-vio-driver','adm-vio-desc','adm-vio-amount'].forEach(id=>document.getElementById(id).value="");
+}
+
+function adminDriverCalculatedBalances() {
+    let bal = {};
+    Object.values(systemData.violations||{}).forEach(v=>{
+        if(!v.driver) return;
+        if(!bal[v.driver]) bal[v.driver]={driver:v.driver,totalVios:0,totalDiscounts:0};
+        bal[v.driver].totalVios += parseFloat(v.amount||0);
+    });
+    Object.values(systemData.invoices||{}).forEach(inv=>{
+        let co=Object.values(systemData.cars).find(c=>c.id===inv.car);
+        let dn=co?co.driverName:null;
+        if(dn&&bal[dn]) (inv.items||[]).forEach(item=>{ if(item.desc.includes("مخالفات")||item.desc.includes("خصم")) bal[dn].totalDiscounts+=parseFloat(item.amount||0); });
+    });
+    return bal;
+}
+
+function renderAdminDriverBalancesTable() {
+    const tbody=document.getElementById('adm-driver-balances-tbody');
+    tbody.innerHTML="";
+    let bal=adminDriverCalculatedBalances();
+    if(!Object.keys(bal).length){ tbody.innerHTML='<tr><td colspan="5" class="p-3 text-center text-gray-400">لا توجد بيانات.</td></tr>'; return; }
+    Object.values(bal).forEach(b=>{
+        let net=b.totalVios-b.totalDiscounts;
+        tbody.innerHTML+=`<tr><td class="p-2 font-bold">${b.driver}</td><td class="p-2 text-rose-600 font-mono">${b.totalVios} ج.م</td><td class="p-2 text-emerald-600 font-mono">${b.totalDiscounts} ج.م</td><td class="p-2 font-black ${net>0?'text-amber-600':'text-gray-600'}">${net} ج.م</td><td class="p-2 text-center"><div class="flex items-center justify-center gap-1"><input type="number" id="disc-val-${b.driver.replace(/\s+/g,'_')}" placeholder="مبلغ" class="w-16 p-1 border rounded text-center text-xs"><button onclick="applyIndividualDriverDiscount('${b.driver}')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px] font-bold">خصم</button></div></td></tr>`;
+    });
+}
+
+function applyIndividualDriverDiscount(dn) {
+    let id=dn.replace(/\s+/g,'_');
+    let amt=parseFloat(document.getElementById('disc-val-'+id).value);
+    if(isNaN(amt)||amt<=0) return alert("مبلغ خصم غير صحيح!");
+    db.ref('violations').push({ date:new Date().toISOString().split('T')[0], car:"إدارة", driver:dn, desc:"[خصم مالي مستقطع]", amount:-amt });
+    alert(`✅ تم تطبيق خصم ${amt} ج للسائق ${dn}.`);
+}
+
+function applyMassDriverDiscount() {
+    let amt=parseFloat(document.getElementById('adm-mass-discount').value);
+    if(isNaN(amt)||amt<=0) return alert("الرجاء إدخال مبلغ الخصم الجماعي!");
+    let bal=adminDriverCalculatedBalances();
+    if(confirm(`تطبيق خصم ${amt} جنيه على (${Object.keys(bal).length}) سائق؟`)) {
+        Object.keys(bal).forEach(dn=>{ db.ref('violations').push({ date:new Date().toISOString().split('T')[0], car:"إدارة", driver:dn, desc:"[خصم جماعي عام]", amount:-amt }); });
+        alert("✅ تم تطبيق الخصم الجماعي."); document.getElementById('adm-mass-discount').value="";
+    }
+}
+
+function executeAdminAccountSearch() {
+    const q=document.getElementById('adm-acc-search').value.trim().toLowerCase();
+    const box=document.getElementById('adm-acc-results-box');
+    if(!q) return alert("الرجاء إدخال نص البحث!");
+    let mv=Object.values(systemData.violations||{}).filter(v=>(v.car||'').toLowerCase().includes(q)||(v.driver||'').toLowerCase().includes(q));
+    let me=Object.values(systemData.invoices||{}).filter(i=>i.car&&i.car.toLowerCase().includes(q));
+    let tot=mv.reduce((a,c)=>a+parseFloat(c.amount||0),0);
+    box.classList.remove('hidden');
+    box.innerHTML=`<p class="font-bold text-slate-900 mb-2">📊 نتائج الفحص:</p><p>• إجمالي المخالفات: <strong class="text-rose-600">${tot} جنيه</strong></p><p>• عدد الفواتير: <strong>${me.length}</strong></p><div class="mt-2 text-[11px] bg-white p-2 rounded border max-h-36 overflow-y-auto">${mv.map(v=>`[${v.date}] ${v.car}: ${v.desc} (${v.amount} ج)`).join('<br>')}</div>`;
+}
+
+function importCSVData(event, type) {
+    const file=event.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=function(e){
+        const lines=e.target.result.split('\n'); let count=0;
+        for(let i=1;i<lines.length;i++){
+            if(!lines[i].trim()) continue;
+            const c=lines[i].split(',');
+            if(type==='cars'&&c.length>=7){ db.ref('cars').push({ id:c[0].trim(),chassis:c[1].trim(),motor:c[2].trim(),type:c[3].trim(),model:c[4].trim(),expiry:c[5].trim(),company:c[6].trim(),insType:"سائق",driverName:c[7]?c[7].trim():"غير محدد",insAmount:0 }); count++; }
+            else if(type==='violations'&&c.length>=4){ db.ref('violations').push({ date:c[0].trim(),car:c[1].trim(),driver:c[2].trim(),desc:c[3].trim(),amount:parseFloat(c[4]||0) }); count++; }
+        }
+        alert(`✅ تم استيراد (${count}) سجل.`);
+    };
+    reader.readAsText(file);
+}
+
+function exportDataToCSV(type) {
+    let csv="data:text/csv;charset=utf-8,";
+    if(type==='cars'){
+        csv+="رقم السيارة,الشاسيه,الموتور,النوع,الموديل,انتهاء الترخيص,الشركة,السائق\n";
+        Object.values(systemData.cars||{}).forEach(c=>{ csv+=`${c.id},${c.chassis},${c.motor},${c.type},${c.model},${c.expiry},${c.company},${c.driverName}\n`; });
+    } else {
+        csv+="التاريخ,رقم السيارة,السائق,البيان,المبلغ\n";
+        Object.values(systemData.violations||{}).forEach(v=>{ csv+=`${v.date},${v.car},${v.driver},${v.desc},${v.amount}\n`; });
+    }
+    const a=document.createElement("a"); a.setAttribute("href",encodeURI(csv)); a.setAttribute("download",`تصدير_${type}.csv`); document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function saveCarData() {
+    const uid=document.getElementById('adm-car-uid').value;
+    const p={ id:document.getElementById('car-form-id').value.trim(), chassis:document.getElementById('car-form-chassis').value.trim(), motor:document.getElementById('car-form-motor').value.trim(), type:document.getElementById('car-form-type').value.trim(), model:document.getElementById('car-form-model').value.trim(), expiry:document.getElementById('car-form-expiry').value, company:document.getElementById('car-form-company').value.trim(), insType:document.getElementById('car-form-ins-type').value, driverName:document.getElementById('car-form-driver-name').value.trim(), insAmount:parseFloat(document.getElementById('car-form-ins-amount').value||0) };
+    if(!p.id||!p.expiry||!p.company) return alert("يرجى إدخال البيانات الإلزامية!");
+    if(uid) db.ref('cars/'+uid).set(p,()=>alert("✅ تم تحديث السيارة."));
+    else db.ref('cars').push(p,()=>alert("✅ تم إضافة السيارة."));
+    clearCarForm();
+}
+
+function editCarClick(key) {
+    let c=systemData.cars[key];
+    document.getElementById('adm-car-uid').value=key;
+    ['car-form-id','car-form-chassis','car-form-motor','car-form-type','car-form-model','car-form-expiry','car-form-company','car-form-driver-name','car-form-ins-amount'].forEach((id,i)=>{
+        let fields=['id','chassis','motor','type','model','expiry','company','driverName','insAmount'];
+        document.getElementById(id).value=c[fields[i]];
+    });
+    document.getElementById('car-form-ins-type').value=c.insType;
+    switchAdminTab('sub-admin-cars');
+}
+
+function deleteCarClick(key) { if(confirm("حذف هذه السيارة نهائياً؟")) db.ref('cars/'+key).set(null); }
+
+function clearCarForm() { ['adm-car-uid','car-form-id','car-form-chassis','car-form-motor','car-form-type','car-form-model','car-form-expiry','car-form-company','car-form-driver-name','car-form-ins-amount'].forEach(id=>document.getElementById(id).value=""); }
+
+function renderAdminCarsMasterTable() {
+    const tbody=document.getElementById('adm-cars-master-tbody'); tbody.innerHTML="";
+    Object.keys(systemData.cars||{}).forEach(key=>{
+        let c=systemData.cars[key];
+        tbody.innerHTML+=`<tr><td class="p-2 font-bold text-blue-900">${c.id}</td><td class="p-2">${c.company}</td><td class="p-2">${c.driverName||'غير معين'}</td><td class="p-2 font-mono">${c.expiry}</td><td class="p-2 font-mono text-gray-400">${c.chassis}</td><td class="p-2 text-center"><button onclick="editCarClick('${key}')" class="text-blue-600 hover:underline font-bold ml-2">تعديل</button><button onclick="deleteCarClick('${key}')" class="text-red-600 hover:underline font-bold">حذف</button></td></tr>`;
+    });
+}
+
+function calculateDaysDiff(d){ return Math.ceil((new Date(d)-new Date("2026-05-23"))/(1000*60*60*24)); }
+
+function renderLicensesCategorizedTables() {
+    ['tbl-license-expired','tbl-license-soon','tbl-license-active','sup-urgent-cars-tbody'].forEach(id=>document.getElementById(id).innerHTML="");
+    Object.values(systemData.cars||{}).forEach(c=>{
+        let days=calculateDaysDiff(c.expiry);
+        let row=`<tr><td class="p-2 font-bold">${c.id}</td><td class="p-2 text-gray-500">${c.company}</td><td class="p-2 font-mono">${c.expiry}</td><td class="p-2 font-bold">${days} يوم</td></tr>`;
+        if(days<0){ document.getElementById('tbl-license-expired').innerHTML+=row; document.getElementById('sup-urgent-cars-tbody').innerHTML+=`<tr class="bg-red-50/40"><td class="p-2 font-bold text-red-900">${c.id}</td><td class="p-2">${c.company}</td><td class="p-2 font-mono text-red-700">${c.expiry} (منتهية)</td><td class="p-2 text-center"><button onclick="quickPrepareExpenseForCar('${c.id}')" class="bg-amber-600 text-white px-2 py-0.5 rounded text-[10px] font-bold">تجهيز الفاتورة</button></td></tr>`; }
+        else if(days<=30){ document.getElementById('tbl-license-soon').innerHTML+=row; document.getElementById('sup-urgent-cars-tbody').innerHTML+=`<tr class="bg-amber-50/40"><td class="p-2 font-bold text-amber-900">${c.id}</td><td class="p-2">${c.company}</td><td class="p-2 font-mono text-amber-700">${c.expiry} (ينتهي قريباً)</td><td class="p-2 text-center"><button onclick="quickPrepareExpenseForCar('${c.id}')" class="bg-amber-600 text-white px-2 py-0.5 rounded text-[10px] font-bold">تجهيز الفاتورة</button></td></tr>`; }
+        else document.getElementById('tbl-license-active').innerHTML+=row;
+    });
+}
+
+function filterLicensesReport() {
+    const q=document.getElementById('license-search-input').value.trim().toLowerCase();
+    ['tbl-license-expired','tbl-license-soon','tbl-license-active'].forEach(id=>{
+        document.getElementById(id).querySelectorAll('tr').forEach(tr=>{ tr.style.display=tr.innerText.toLowerCase().includes(q)?"":"none"; });
+    });
+}
+
+function saveSupervisorData() {
+    const uid=document.getElementById('sup-form-uid').value;
+    const name=document.getElementById('sup-form-name').value.trim();
+    const password=document.getElementById('sup-form-password').value.trim();
+    const custodyDelta=parseFloat(document.getElementById('sup-form-custody').value||0);
+    if(!name) return alert("يرجى إدخال اسم المشرف!");
+    if(!uid&&!password) return alert("يرجى إدخال كلمة مرور للمشرف الجديد!");
+    if(uid) {
+        let cur=parseFloat(systemData.supervisors[uid].custody||0);
+        db.ref('supervisors/'+uid+'/name').set(name);
+        db.ref('supervisors/'+uid+'/custody').set(cur+custodyDelta);
+        if(password) db.ref('supervisors/'+uid+'/password').set(password);
+        alert("✅ تم تحديث بيانات المشرف.");
+    } else {
+        db.ref('supervisors').push({ name, custody:custodyDelta, password });
+        alert("✅ تم تسجيل المشرف الجديد.");
+    }
+    ['sup-form-uid','sup-form-name','sup-form-password','sup-form-custody'].forEach(id=>document.getElementById(id).value="");
+}
+
+function editSupClick(key) {
+    let s=systemData.supervisors[key];
+    document.getElementById('sup-form-uid').value=key;
+    document.getElementById('sup-form-name').value=s.name;
+    document.getElementById('sup-form-password').value="";
+    document.getElementById('sup-form-custody').value="";
+    switchAdminTab('sub-admin-sups');
+}
+
+function clearOrLiquidateSupCustody(key) { if(confirm("تصفير العهدة النقدية لهذا المشرف؟")) db.ref('supervisors/'+key+'/custody').set(0); }
+function deleteSupClick(key) { if(confirm("حذف هذا المشرف نهائياً؟")) db.ref('supervisors/'+key).set(null); }
+
+function renderAdminSupervisorsTable() {
+    const tbody=document.getElementById('adm-sups-master-tbody'); tbody.innerHTML="";
+    Object.keys(systemData.supervisors||{}).forEach(key=>{
+        let s=systemData.supervisors[key];
+        tbody.innerHTML+=`<tr><td class="p-2 font-bold">${s.name}</td><td class="p-2 text-emerald-600 font-black font-mono">${s.custody} ج.م</td><td class="p-2 text-center font-mono text-gray-400">${s.password?'••••':'<span class="text-red-400 text-[10px]">غير مضبوط</span>'}</td><td class="p-2 text-center"><button onclick="editSupClick('${key}')" class="text-blue-600 hover:underline font-bold ml-1">تعديل</button><button onclick="clearOrLiquidateSupCustody('${key}')" class="text-amber-600 hover:underline font-bold ml-1">تصفية العهدة</button><button onclick="deleteSupClick('${key}')" class="text-red-600 hover:underline font-bold">حذف</button></td></tr>`;
+    });
+}
+
+function updateAdminSystemPassword() {
+    const nw=document.getElementById('adm-new-password-field').value.trim();
+    if(!nw) return alert("الرجاء كتابة الباسورد الجديد!");
+    db.ref('config/adminPass').set(nw,()=>{ alert("🔒 تم تحديث باسورد الأدمن."); document.getElementById('adm-new-password-field').value=""; });
+}
+
+function updateTrafficManagerPassword() {
+    const nw=document.getElementById('traffic-new-password-field').value.trim();
+    if(!nw) return alert("الرجاء كتابة الباسورد الجديد!");
+    db.ref('config/trafficManagerPass').set(nw,()=>{ alert("🔒 تم تحديث باسورد مدير الحركة."); document.getElementById('traffic-new-password-field').value=""; });
+}
+
+function updateFinanceManagerPassword() {
+    const nw=document.getElementById('finance-new-password-field').value.trim();
+    if(!nw) return alert("الرجاء كتابة الباسورد الجديد!");
+    db.ref('config/financeManagerPass').set(nw,()=>{ alert("🔒 تم تحديث باسورد المدير المالي."); document.getElementById('finance-new-password-field').value=""; });
+}
+
+// ==========================================
+// 🛠️ وحدة المشرف
+// ==========================================
+function quickPrepareExpenseForCar(carId) {
+    document.getElementById('exp-form-car').value=carId;
+    document.getElementById('exp-form-date').value=new Date().toISOString().split('T')[0];
+    document.getElementById('exp-form-place').value="مرور المحافظة الفحص الرئيسي";
+    document.getElementById('exp-form-license-desc').value="رسوم تجديد وفحص وتأمين شامل";
+    document.getElementById('exp-form-amount').value=1500;
+    document.getElementById('exp-form-desc').value="بند رسوم فحص وتراخيص موحدة";
+    window.scrollTo({top:document.getElementById('exp-form-date').offsetTop-50,behavior:'smooth'});
+}
+
+function createNewCarExpenseInvoice() {
+    if(!currentSelectedSupervisorKey) return alert("يجب تسجيل الدخول كمشرف أولاً!");
+    const date=document.getElementById('exp-form-date').value;
+    const car=document.getElementById('exp-form-car').value.trim();
+    const place=document.getElementById('exp-form-place').value.trim();
+    const licDesc=document.getElementById('exp-form-license-desc').value.trim();
+    const initAmount=parseFloat(document.getElementById('exp-form-amount').value);
+    const initDesc=document.getElementById('exp-form-desc').value.trim();
+    if(!date||!car||isNaN(initAmount)||!initDesc) return alert("الرجاء استيفاء بيانات المصروف الأساسية!");
+    activeInvoiceData = { id:"INV-"+Math.floor(100000+Math.random()*900000), date, car, place, licenseDesc:licDesc, supervisorKey:currentSelectedSupervisorKey, supervisorName:currentSupervisorName, items:[{amount:initAmount,desc:initDesc}], status:'draft' };
+    let pv=0;
+    Object.values(systemData.violations||{}).forEach(v=>{ if(v.car&&v.car===car&&parseFloat(v.amount)>0) pv+=parseFloat(v.amount); });
+    if(pv>0 && confirm(`🚨 مخالفات عالقة على السيارة ${car} بقيمة [${pv} جنيه]. ربطها بالفاتورة؟`)) {
+        activeInvoiceData.items.push({amount:pv,desc:`تصفية مبالغ المخالفات المربوطة على السائق للسيارة`});
+        activeInvoiceData.clearanceSum=pv;
+    }
+    renderActiveInvoiceZoneTable();
+}
+
+function renderActiveInvoiceZoneTable() {
+    if(!activeInvoiceData) return;
+    document.getElementById('sup-active-invoice-zone').classList.remove('hidden');
+    document.getElementById('lbl-active-inv-car').innerText=activeInvoiceData.car;
+    document.getElementById('lbl-active-inv-meta').innerText=`فاتورة: ${activeInvoiceData.id} | مكان: ${activeInvoiceData.place}`;
+    const tbody=document.getElementById('active-invoice-items-tbody'); tbody.innerHTML="";
+    let total=0;
+    activeInvoiceData.items.forEach((item,i)=>{
+        total+=parseFloat(item.amount);
+        tbody.innerHTML+=`<tr><td class="p-2 font-bold text-emerald-700 font-mono">${item.amount} ج.م</td><td class="p-2">${item.desc}</td><td class="p-2 text-center"><button onclick="removeItemFromActiveInvoice(${i})" class="text-rose-600 font-bold hover:underline">حذف</button></td></tr>`;
+    });
+    document.getElementById('lbl-active-inv-total').innerText=total;
+}
+
+function appendItemToActiveInvoice() {
+    const amt=parseFloat(document.getElementById('sub-item-amount').value);
+    const desc=document.getElementById('sub-item-desc').value.trim();
+    if(isNaN(amt)||!desc) return alert("الرجاء إدخال مبلغ البند والبيان!");
+    activeInvoiceData.items.push({amount:amt,desc});
+    document.getElementById('sub-item-amount').value=""; document.getElementById('sub-item-desc').value="";
+    renderActiveInvoiceZoneTable();
+}
+
+function removeItemFromActiveInvoice(i) { activeInvoiceData.items.splice(i,1); renderActiveInvoiceZoneTable(); }
+
+function submitInvoiceForApproval() {
+    if(!activeInvoiceData||!activeInvoiceData.items.length) return alert("لا توجد بنود في الفاتورة!");
+    let total=activeInvoiceData.items.reduce((a,c)=>a+parseFloat(c.amount),0);
+    activeInvoiceData.status='pending_approval';
+    activeInvoiceData.totalSum=total;
+    activeInvoiceData.submittedAt=new Date().toISOString();
+    db.ref('invoices').push(activeInvoiceData,()=>{
+        alert(`✅ تم إرسال الفاتورة ${activeInvoiceData.id} لمدير الحركة للاعتماد.\nبانتظار الموافقة لإتمام الخصم من العهدة.`);
+        document.getElementById('sup-active-invoice-zone').classList.add('hidden');
+        activeInvoiceData=null;
+        ['exp-form-car','exp-form-amount','exp-form-desc','exp-form-place','exp-form-license-desc'].forEach(id=>document.getElementById(id).value="");
+    });
+}
+
+function supRegisterInstantViolation() {
+    const car=document.getElementById('sup-instant-car').value.trim();
+    const driver=document.getElementById('sup-instant-driver').value.trim();
+    const desc=document.getElementById('sup-instant-desc').value.trim();
+    const amount=parseFloat(document.getElementById('sup-instant-amount').value);
+    if(!car||!driver||isNaN(amount)) return alert("يرجى إدخال رقم السيارة والسائق والمبلغ!");
+    db.ref('violations').push({ date:new Date().toISOString().split('T')[0], car, driver, desc:`[مخالفة فورية]: ${desc}`, amount },()=>{
+        alert(`✅ تم تسجيل المخالفة ${amount} ج على السيارة ${car}.`);
+        ['sup-instant-car','sup-instant-driver','sup-instant-desc','sup-instant-amount'].forEach(id=>document.getElementById(id).value="");
+    });
+}
+
+// ==========================================
+// 🚦 شاشة مدير الحركة
+// ==========================================
+function renderTrafficManagerScreen() {
+    const pt=document.getElementById('traffic-pending-tbody');
+    const ht=document.getElementById('traffic-history-tbody');
+    pt.innerHTML=""; ht.innerHTML="";
+    let pending=0, hist=[];
+    Object.keys(systemData.invoices||{}).forEach(key=>{
+        let inv=systemData.invoices[key];
+        let total=(inv.totalSum)||(inv.items||[]).reduce((a,c)=>a+parseFloat(c.amount||0),0);
+        if(inv.status==='pending_approval') {
+            pending++;
+            pt.innerHTML+=`<tr class="bg-amber-50/30 hover:bg-amber-50"><td class="p-2 font-mono text-blue-900 font-bold">${inv.id}</td><td class="p-2 font-mono">${inv.date}</td><td class="p-2 font-bold">${inv.car}</td><td class="p-2 text-gray-600">${inv.supervisorName||'غير محدد'}</td><td class="p-2 text-gray-500">${inv.place||''}</td><td class="p-2 text-center font-black text-emerald-700 font-mono">${total} ج.م</td><td class="p-2 text-center"><button onclick="showInvoiceDetails('${key}')" class="bg-slate-100 text-slate-700 border px-2 py-1 rounded text-[10px] font-bold hover:bg-slate-200">🔍 تفاصيل</button></td><td class="p-2 text-center"><button onclick="approveInvoice('${key}')" class="bg-emerald-600 text-white px-3 py-1 rounded text-[10px] font-bold ml-1 hover:bg-emerald-700">✔ موافقة</button><button onclick="rejectInvoice('${key}')" class="bg-rose-600 text-white px-3 py-1 rounded text-[10px] font-bold hover:bg-rose-700">✘ رفض</button></td></tr>`;
+        } else if(['approved','finalized','rejected'].includes(inv.status)) hist.push({key,inv,total});
+    });
+    hist.sort((a,b)=>(b.inv.submittedAt||'').localeCompare(a.inv.submittedAt||'')).forEach(({key,inv,total})=>{
+        let badge=inv.status==='approved'?'<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold">معتمد ✔</span>':inv.status==='finalized'?'<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold">منتهي ✔✔</span>':'<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold">مرفوض ✘</span>';
+        ht.innerHTML+=`<tr><td class="p-2 font-mono text-blue-900">${inv.id}</td><td class="p-2 font-mono">${inv.date}</td><td class="p-2 font-bold">${inv.car}</td><td class="p-2 text-center font-mono">${total} ج.م</td><td class="p-2 text-center">${badge}</td></tr>`;
+    });
+    document.getElementById('traffic-pending-count').innerText=`${pending} طلب`;
+    document.getElementById('traffic-no-pending').classList.toggle('hidden', pending>0);
+}
+
+function approveInvoice(key) {
+    let inv=systemData.invoices[key];
+    if(confirm(`تأكيد اعتماد الفاتورة ${inv.id} للسيارة ${inv.car}؟\nستُرسل للمدير المالي للطباعة والخصم.`)) {
+        db.ref('invoices/'+key+'/status').set('approved',()=>{ db.ref('invoices/'+key+'/approvedAt').set(new Date().toISOString()); alert(`✅ تم اعتماد الفاتورة ${inv.id}. ستظهر في شاشة المدير المالي.`); });
+    }
+}
+
+function rejectInvoice(key) {
+    let reason=prompt("سبب الرفض (اختياري):");
+    let inv=systemData.invoices[key];
+    db.ref('invoices/'+key+'/status').set('rejected',()=>{
+        db.ref('invoices/'+key+'/rejectedAt').set(new Date().toISOString());
+        if(reason) db.ref('invoices/'+key+'/rejectionReason').set(reason);
+        alert(`تم رفض الفاتورة ${inv.id}.`);
+    });
+}
+
+function showInvoiceDetails(key) {
+    let inv=systemData.invoices[key];
+    let total=(inv.totalSum)||(inv.items||[]).reduce((a,c)=>a+parseFloat(c.amount||0),0);
+    document.getElementById('modal-inv-title').innerText=`فاتورة: ${inv.id} - سيارة: ${inv.car}`;
+    document.getElementById('modal-inv-items').innerHTML=(inv.items||[]).map(item=>`<div class="flex justify-between border-b pb-1"><span>${item.desc}</span><strong class="text-emerald-700 font-mono">${item.amount} ج.م</strong></div>`).join('');
+    document.getElementById('modal-inv-total').innerText=`${total} جنيه`;
+    document.getElementById('invoice-details-modal').classList.remove('hidden');
+}
+
+function closeInvoiceModal() { document.getElementById('invoice-details-modal').classList.add('hidden'); }
+
+// ==========================================
+// 💰 شاشة المدير المالي
+// ==========================================
+function renderFinanceManagerScreen() {
+    const at=document.getElementById('finance-approved-tbody');
+    const ht=document.getElementById('finance-history-tbody');
+    at.innerHTML=""; ht.innerHTML="";
+    let approved=0, hist=[];
+    Object.keys(systemData.invoices||{}).forEach(key=>{
+        let inv=systemData.invoices[key];
+        let total=(inv.totalSum)||(inv.items||[]).reduce((a,c)=>a+parseFloat(c.amount||0),0);
+        if(inv.status==='approved') {
+            approved++;
+            at.innerHTML+=`<tr class="bg-emerald-50/30 hover:bg-emerald-50"><td class="p-2 font-mono text-blue-900 font-bold">${inv.id}</td><td class="p-2 font-mono">${inv.date}</td><td class="p-2 font-bold">${inv.car}</td><td class="p-2 text-gray-600">${inv.supervisorName||'غير محدد'}</td><td class="p-2 text-gray-500">${inv.place||''} ${inv.licenseDesc?'- '+inv.licenseDesc:''}</td><td class="p-2 text-center font-black text-emerald-700 font-mono text-sm">${total} ج.م</td><td class="p-2 text-center"><button onclick="showInvoiceDetails('${key}')" class="bg-slate-100 text-slate-700 border px-2 py-1 rounded text-[10px] font-bold ml-1 hover:bg-slate-200">🔍 تفاصيل</button><button onclick="finalizeAndPrintInvoice('${key}')" class="bg-emerald-600 text-white px-3 py-1 rounded text-[10px] font-bold ml-1 hover:bg-emerald-700">🖨️ طباعة وخصم</button></td></tr>`;
+        } else if(inv.status==='finalized') hist.push({key,inv,total});
+    });
+    hist.sort((a,b)=>(b.inv.finalizedAt||'').localeCompare(a.inv.finalizedAt||'')).forEach(({key,inv,total})=>{
+        ht.innerHTML+=`<tr class="hover:bg-slate-50"><td class="p-2 font-mono text-blue-900">${inv.id}</td><td class="p-2 font-mono">${inv.date}</td><td class="p-2 font-bold">${inv.car}</td><td class="p-2 text-center font-mono text-emerald-700">${total} ج.م</td><td class="p-2 text-center"><button onclick="reprintOldInvoice('${key}')" class="bg-slate-100 text-slate-700 border px-3 py-1 rounded text-[11px] font-bold hover:bg-slate-200">🖨️ إعادة طباعة</button></td></tr>`;
+    });
+    document.getElementById('finance-approved-count').innerText=`${approved} فاتورة`;
+    document.getElementById('finance-no-approved').classList.toggle('hidden', approved>0);
+}
+
+function finalizeAndPrintInvoice(key) {
+    let inv=systemData.invoices[key];
+    let total=(inv.totalSum)||(inv.items||[]).reduce((a,c)=>a+parseFloat(c.amount||0),0);
+    if(!inv.supervisorKey||!systemData.supervisors[inv.supervisorKey]) return alert("❌ لم يتم العثور على بيانات المشرف!");
+    let sup=systemData.supervisors[inv.supervisorKey];
+    let cur=parseFloat(sup.custody||0);
+    if(cur<total) return alert(`❌ عهدة المشرف (${cur} ج) غير كافية لتغطية الفاتورة (${total} ج).\nيرجى مراجعة الأدمن لشحن العهدة.`);
+    if(!confirm(`تأكيد طباعة وخصم ${total} جنيه من عهدة "${sup.name}"؟\nالعهدة قبل: ${cur} ج → بعد: ${cur-total} ج`)) return;
+    db.ref('supervisors/'+inv.supervisorKey+'/custody').set(cur-total);
+    if(inv.clearanceSum&&inv.clearanceSum>0) {
+        let co=Object.values(systemData.cars).find(c=>c.id===inv.car);
+        db.ref('violations').push({ date:inv.date, car:inv.car, driver:co?co.driverName:"سائق", desc:`[تسوية مخالفات: ${inv.id}]`, amount:-parseFloat(inv.clearanceSum) });
+    }
+    db.ref('invoices/'+key+'/status').set('finalized');
+    db.ref('invoices/'+key+'/finalizedAt').set(new Date().toISOString());
+    activeInvoiceData=inv;
+    lastPrintedScreen='finance';
+    triggerPaperInvoicePrintWorkflow(total, sup.name);
+}
+
+function reprintOldInvoice(key) {
+    let inv=systemData.invoices[key]; if(!inv) return;
+    let total=(inv.totalSum)||(inv.items||[]).reduce((a,c)=>a+parseFloat(c.amount||0),0);
+    let supName=inv.supervisorName||(inv.supervisorKey&&systemData.supervisors[inv.supervisorKey]?systemData.supervisors[inv.supervisorKey].name:'غير محدد');
+    activeInvoiceData=inv;
+    lastPrintedScreen=isFinanceAuthenticated?'finance':'reports';
+    triggerPaperInvoicePrintWorkflow(total,supName);
+}
+
+function triggerPaperInvoicePrintWorkflow(totalSum, supervisorName) {
+    document.getElementById('prt-inv-id').innerText=activeInvoiceData.id;
+    document.getElementById('prt-inv-date').innerText=activeInvoiceData.date;
+    document.getElementById('prt-inv-car').innerText=activeInvoiceData.car;
+    document.getElementById('prt-inv-place').innerText=activeInvoiceData.place||"مرور المحافظة";
+    document.getElementById('prt-inv-license-desc').innerText=activeInvoiceData.licenseDesc||"مصاريف عامة";
+    document.getElementById('prt-inv-supervisor').innerText=supervisorName||activeInvoiceData.supervisorName||"غير محدد";
+    const tb=document.getElementById('prt-inv-items-tbody'); tb.innerHTML="";
+    (activeInvoiceData.items||[]).forEach(item=>{ tb.innerHTML+=`<tr class="border-b border-slate-900"><td class="p-2 border-l border-slate-900 font-bold font-mono">${item.amount} ج.م</td><td class="p-2">${item.desc}</td></tr>`; });
+    document.getElementById('prt-inv-total-lbl').innerText=totalSum;
+    document.querySelectorAll('.main-screen').forEach(s=>s.classList.add('hidden'));
+    document.getElementById('print-invoice-zone').classList.remove('hidden');
+    setTimeout(()=>{ window.print(); }, 300);
+}
+
+function closePrintInvoiceZone() {
+    document.getElementById('print-invoice-zone').classList.add('hidden');
+    let carNum=document.getElementById('prt-inv-car').innerText;
+    activeInvoiceData=null;
+    if(lastPrintedScreen==='finance' && isFinanceAuthenticated) {
+        switchMainScreen('finance');
+        let nd=prompt(`تحديث تاريخ انتهاء الترخيص الجديد للسيارة ${carNum}؟ (اتركه فارغاً للتخطي) بصيغة: YYYY-MM-DD`);
+        if(nd&&nd.trim()) { let ck=Object.keys(systemData.cars).find(k=>systemData.cars[k].id===carNum); if(ck){ db.ref('cars/'+ck+'/expiry').set(nd.trim()); alert("✅ تم تحديث تاريخ الترخيص."); } }
+    } else { switchMainScreen('reports'); }
+}
+
+// ==========================================
+// 📊 مركز التقارير
+// ==========================================
+function switchReportTab(zoneId) {
+    document.querySelectorAll('.report-zone').forEach(z=>z.classList.add('hidden'));
+    document.querySelectorAll('#screen-reports button').forEach(b=>b.classList.remove('bg-blue-950','text-white'));
+    document.getElementById('zone-'+zoneId).classList.remove('hidden');
+    document.getElementById('tab-'+zoneId).classList.add('bg-blue-950','text-white');
+}
+
+function renderReportsModule(mod) {
+    if(mod==='vios') {
+        const tb=document.getElementById('tbody-rep-vios');
+        const ft=(document.getElementById('search-vios-filter').value||'').toLowerCase();
+        tb.innerHTML="";
+        Object.values(systemData.violations||{}).forEach(v=>{ if((v.car||'').toLowerCase().includes(ft)||(v.driver||'').toLowerCase().includes(ft)) tb.innerHTML+=`<tr><td class="p-2 font-mono">${v.date}</td><td class="p-2 font-bold">${v.car}</td><td class="p-2">${v.driver}</td><td class="p-2 text-gray-500">${v.desc}</td><td class="p-2 font-bold font-mono ${v.amount>0?'text-rose-600':'text-emerald-600'}">${v.amount} ج.م</td></tr>`; });
+    }
+    if(mod==='drivers') {
+        const tb=document.getElementById('tbody-rep-drivers'); tb.innerHTML="";
+        Object.values(adminDriverCalculatedBalances()).forEach(b=>{ let n=b.totalVios-b.totalDiscounts; tb.innerHTML+=`<tr><td class="p-2 font-bold">${b.driver}</td><td class="p-2 text-rose-600 font-mono">${b.totalVios} ج.م</td><td class="p-2 text-emerald-600 font-mono">${b.totalDiscounts} ج.م</td><td class="p-2 font-black font-mono">${n} ج.م</td></tr>`; });
+    }
+    if(mod==='licenses') {
+        const tb=document.getElementById('tbody-rep-licenses-state'); tb.innerHTML="";
+        Object.values(systemData.cars||{}).forEach(c=>{ let d=calculateDaysDiff(c.expiry); tb.innerHTML+=`<tr><td class="p-2 font-bold">${c.id}</td><td class="p-2">${c.company}</td><td class="p-2 font-mono">${c.expiry}</td><td class="p-2 font-bold">${d} يوم</td></tr>`; });
+    }
+    if(mod==='custodies') {
+        const tb=document.getElementById('tbody-rep-custodies'); tb.innerHTML="";
+        Object.values(systemData.supervisors||{}).forEach(s=>{ tb.innerHTML+=`<tr><td class="p-2 font-bold">${s.name}</td><td class="p-2 text-emerald-700 font-black font-mono">${s.custody} ج.م</td><td class="p-2 text-center"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px]">ميداني نشط</span></td></tr>`; });
+    }
+    if(mod==='invoices') {
+        const tb=document.getElementById('tbody-rep-invoices-history'); tb.innerHTML="";
+        const statusMap={'pending_approval':'⏳ انتظار الاعتماد','approved':'✔ معتمد','finalized':'✔✔ منتهي','rejected':'✘ مرفوض'};
+        const classMap={'pending_approval':'bg-amber-100 text-amber-700','approved':'bg-blue-100 text-blue-700','finalized':'bg-emerald-100 text-emerald-700','rejected':'bg-red-100 text-red-700'};
+        Object.keys(systemData.invoices||{}).forEach(key=>{
+            let inv=systemData.invoices[key];
+            let total=(inv.totalSum)||(inv.items||[]).reduce((a,c)=>a+parseFloat(c.amount||0),0);
+            let sl=statusMap[inv.status]||inv.status, sc=classMap[inv.status]||'bg-gray-100 text-gray-700';
+            tb.innerHTML+=`<tr><td class="p-2 font-mono text-blue-900">${inv.id}</td><td class="p-2 font-mono">${inv.date}</td><td class="p-2 font-bold">${inv.car}</td><td class="p-2 text-gray-500">${inv.place||''} - ${inv.licenseDesc||''}</td><td class="p-2 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${sc}">${sl}</span></td><td class="p-2 text-center">${inv.status==='finalized'?`<button onclick="reprintOldInvoice('${key}')" class="bg-slate-100 text-slate-800 border px-3 py-1 rounded text-[11px] font-bold hover:bg-slate-200">🖨️ طباعة</button>`:''}</td></tr>`;
+        });
+    }
+}
+
+// ==========================================
+// 📊 داشبورد - الشاشة الرئيسية
+// ==========================================
+function renderDashboard() {
+    const cars = systemData.cars||{};
+    const sups = systemData.supervisors||{};
+    const invs = systemData.invoices||{};
+    const today = new Date("2026-05-23");
+
+    const totalCars = Object.keys(cars).length;
+    const totalCustody = Object.values(sups).reduce((a,s)=>a+parseFloat(s.custody||0),0);
+    let pending=0, approved=0, finalized=0, rejected=0, expired=0;
+    Object.values(invs).forEach(inv=>{
+        if(inv.status==='pending_approval') pending++;
+        else if(inv.status==='approved') approved++;
+        else if(inv.status==='finalized') finalized++;
+        else if(inv.status==='rejected') rejected++;
+    });
+    Object.values(cars).forEach(c=>{ if(calculateDaysDiff(c.expiry)<0) expired++; });
+
+    document.getElementById('dash-total-cars').innerText = totalCars;
+    document.getElementById('dash-total-custody').innerText = totalCustody.toLocaleString();
+    document.getElementById('dash-pending-count').innerText = pending + approved;
+    document.getElementById('dash-expired-cars').innerText = expired;
+    document.getElementById('dash-inv-pending').innerText = pending;
+    document.getElementById('dash-inv-approved').innerText = approved;
+    document.getElementById('dash-inv-finalized').innerText = finalized;
+    document.getElementById('dash-inv-rejected').innerText = rejected;
+
+    const supsList = document.getElementById('dash-sups-list');
+    supsList.innerHTML = "";
+    if(!Object.keys(sups).length) { supsList.innerHTML='<p class="text-center text-gray-400 p-3">لا يوجد مشرفين.</p>'; }
+    else Object.values(sups).forEach(s=>{
+        const c = parseFloat(s.custody||0);
+        const color = c > 5000 ? 'text-emerald-700' : c > 1000 ? 'text-amber-600' : 'text-red-600';
+        supsList.innerHTML+=`<div class="flex justify-between items-center p-2 bg-slate-50 rounded border"><span class="font-bold truncate">${s.name}</span><span class="font-black font-mono ${color} mr-2">${c.toLocaleString()} ج</span></div>`;
+    });
+
+    const urgentEl = document.getElementById('dash-urgent-licenses');
+    urgentEl.innerHTML = "";
+    let urgentCount = 0;
+    Object.values(cars).forEach(c=>{
+        const d = calculateDaysDiff(c.expiry);
+        if(d<=30){
+            urgentCount++;
+            const cls = d<0?'bg-red-50 border-red-200 text-red-800':'bg-amber-50 border-amber-200 text-amber-800';
+            urgentEl.innerHTML+=`<div class="flex justify-between items-center p-1.5 rounded border ${cls}"><span class="font-bold">${c.id}</span><span class="font-mono text-[10px]">${d<0?'منتهي':'باقي '+d+' يوم'}</span></div>`;
+        }
+    });
+    if(!urgentCount) urgentEl.innerHTML='<p class="text-center text-emerald-600 p-3 font-bold">✅ جميع التراخيص سارية</p>';
+}
+
+// ==========================================
+// 🔴 بادجات الإشعارات على أزرار التنقل
+// ==========================================
+function updateNavBadges() {
+    const invs = systemData.invoices||{};
+    let trafficCount=0, financeCount=0;
+    Object.values(invs).forEach(inv=>{
+        if(inv.status==='pending_approval') trafficCount++;
+        if(inv.status==='approved') financeCount++;
+    });
+    const bt = document.getElementById('badge-traffic');
+    const bf = document.getElementById('badge-finance');
+    bt.innerText = trafficCount;
+    bt.classList.toggle('hidden', trafficCount===0);
+    bf.innerText = financeCount;
+    bf.classList.toggle('hidden', financeCount===0);
+}
+
+// ==========================================
+// 🔔 سجل فواتير المشرف
+// ==========================================
+function renderSupervisorInvoiceHistory() {
+    if(!currentSelectedSupervisorKey) return;
+    const el = document.getElementById('sup-invoices-list');
+    const invs = systemData.invoices||{};
+    const mine = Object.keys(invs).filter(k=>invs[k].supervisorKey===currentSelectedSupervisorKey);
+    if(!mine.length){ el.innerHTML='<p class="text-center text-gray-400 p-4">لا توجد فواتير سابقة.</p>'; return; }
+    mine.sort((a,b)=>(invs[b].submittedAt||'').localeCompare(invs[a].submittedAt||''));
+    const statusMap = {pending_approval:{label:'⏳ انتظار الاعتماد',cls:'bg-amber-100 text-amber-800 border-amber-200'},approved:{label:'✔ معتمدة - بانتظار المالي',cls:'bg-blue-100 text-blue-800 border-blue-200'},finalized:{label:'✔✔ منتهية ومطبوعة',cls:'bg-emerald-100 text-emerald-800 border-emerald-200'},rejected:{label:'✘ مرفوضة',cls:'bg-red-100 text-red-800 border-red-200'}};
+    el.innerHTML = mine.map(k=>{
+        const inv = invs[k];
+        const total = (inv.totalSum)||(inv.items||[]).reduce((a,c)=>a+parseFloat(c.amount||0),0);
+        const st = statusMap[inv.status]||{label:inv.status,cls:'bg-gray-100 text-gray-700 border-gray-200'};
+        const cancelBtn = inv.status==='pending_approval' ? `<button onclick="supervisorCancelInvoice('${k}')" class="bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded text-[10px] font-bold hover:bg-red-200 mr-1">❌ إلغاء</button>` : '';
+        const rejectReason = inv.status==='rejected'&&inv.rejectionReason ? `<div class="text-[10px] text-red-600 mt-0.5 font-bold">سبب الرفض: ${inv.rejectionReason}</div>` : '';
+        return `<div class="border rounded-lg p-2.5 space-y-1 ${st.cls.includes('red')?'border-red-200':st.cls.includes('emerald')?'border-emerald-200':st.cls.includes('blue')?'border-blue-200':'border-amber-200'}">
+            <div class="flex justify-between items-start">
+                <div><span class="font-bold text-blue-900">${inv.id}</span> — <span class="font-mono">${inv.car}</span> — <span class="text-gray-500">${inv.date}</span></div>
+                <div class="flex items-center gap-1">${cancelBtn}<span class="font-black font-mono text-emerald-700">${total} ج</span></div>
+            </div>
+            <div><span class="px-2 py-0.5 rounded text-[10px] font-bold border ${st.cls}">${st.label}</span></div>
+            ${rejectReason}
+        </div>`;
+    }).join('');
+}
+
+function supervisorCancelInvoice(key) {
+    const inv = systemData.invoices[key];
+    if(!inv || inv.status !== 'pending_approval') return alert("لا يمكن إلغاء هذه الفاتورة.");
+    if(confirm(`إلغاء الفاتورة ${inv.id}؟ سيتم حذفها نهائياً.`)) {
+        db.ref('invoices/'+key).set(null, ()=>{ alert("✅ تم إلغاء الفاتورة."); });
+    }
+}
+
+// ==========================================
+// 📤 تصدير الفواتير CSV
+// ==========================================
+function exportInvoicesToCSV() {
+    const statusMap = {pending_approval:'انتظار الاعتماد',approved:'معتمدة',finalized:'منتهية ومطبوعة',rejected:'مرفوضة'};
+    let csv = "\uFEFF"; // BOM for Arabic
+    csv += "رقم الفاتورة,التاريخ,رقم السيارة,المشرف,المكان,الإجمالي,الحالة,تاريخ الإرسال,تاريخ الاعتماد\n";
+    Object.values(systemData.invoices||{}).forEach(inv=>{
+        const total = (inv.totalSum)||(inv.items||[]).reduce((a,c)=>a+parseFloat(c.amount||0),0);
+        const status = statusMap[inv.status]||inv.status;
+        csv += `"${inv.id}","${inv.date}","${inv.car}","${inv.supervisorName||''}","${inv.place||''}","${total}","${status}","${(inv.submittedAt||'').split('T')[0]}","${(inv.approvedAt||'').split('T')[0]}"\n`;
+    });
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "فواتير_البنا_جروب_" + new Date().toISOString().split('T')[0] + ".csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+// ==========================================
+// ⏱️ تسجيل خروج تلقائي بعد 30 دقيقة
+// ==========================================
+let idleTimer = null;
+function resetIdleTimer() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(()=>{
+        let loggedOut = [];
+        if(isAdminAuthenticated){ isAdminAuthenticated=false; document.getElementById('admin-auth-barrier').classList.remove('hidden'); document.getElementById('admin-real-content').classList.add('hidden'); loggedOut.push("الأدمن"); }
+        if(currentSelectedSupervisorKey){ logoutSupervisor(); loggedOut.push("المشرف"); }
+        if(isTrafficAuthenticated){ logoutTrafficManager(); loggedOut.push("مدير الحركة"); }
+        if(isFinanceAuthenticated){ logoutFinanceManager(); loggedOut.push("المدير المالي"); }
+        if(loggedOut.length) { switchMainScreen('dashboard'); alert(`⏱️ تم تسجيل الخروج التلقائي بسبب الخمول (30 دقيقة).\nالحسابات المُغلقة: ${loggedOut.join(' - ')}`); }
+    }, 30 * 60 * 1000);
+}
+document.addEventListener('click', resetIdleTimer);
+document.addEventListener('keydown', resetIdleTimer);
+document.addEventListener('touchstart', resetIdleTimer);
+resetIdleTimer();
+
+switchMainScreen('dashboard');
+switchReportTab('rep-vios');
+</script>
+</body>
+</html>
