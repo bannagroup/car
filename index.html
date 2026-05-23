@@ -9,10 +9,14 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
+        @page { size: A5 portrait; margin: 8mm; }
         @media print {
             body * { visibility: hidden; }
             #print-invoice-zone, #print-invoice-zone * { visibility: visible; }
-            #print-invoice-zone { position: absolute; left: 0; top: 0; width: 100%; direction: rtl; background-color: white !important; color: black !important; }
+            #print-invoice-zone { display: block !important; position: fixed; left: 0; top: 0; width: 148mm; min-height: 210mm; direction: rtl; background-color: white !important; color: black !important; padding: 6mm !important; font-size: 9pt !important; box-sizing: border-box; }
+            #print-invoice-zone table { font-size: 8pt !important; }
+            #print-invoice-zone .mt-10 { margin-top: 6mm !important; }
+            #print-invoice-zone .mt-6 { margin-top: 4mm !important; }
             .no-print { display: none !important; }
         }
         .tab-active { background-color: #1e3a8a !important; color: #ffffff !important; }
@@ -125,6 +129,7 @@
             <button onclick="switchAdminTab('sub-admin-licenses')" id="tab-admin-licenses" class="bg-white px-3 py-2 border rounded-lg text-xs font-bold">التراخيص</button>
             <button onclick="switchAdminTab('sub-admin-sups')" id="tab-admin-sups" class="bg-white px-3 py-2 border rounded-lg text-xs font-bold">المشرفين والعهد</button>
             <button onclick="switchAdminTab('sub-admin-security')" id="tab-admin-security" class="bg-white px-3 py-2 border rounded-lg text-xs font-bold">كلمات المرور</button>
+            <button onclick="switchAdminTab('sub-admin-invoices')" id="tab-admin-invoices" class="bg-white px-3 py-2 border rounded-lg text-xs font-bold">إدارة الفواتير</button>
         </div>
 
         <div id="sub-admin-vios" class="admin-tab-content hidden space-y-6">
@@ -141,19 +146,36 @@
                     <button onclick="adminInsertViolation()" class="w-full bg-rose-600 text-white font-bold py-2 rounded text-xs hover:bg-rose-700">إدراج المخالفة</button>
                 </div>
                 <div class="bg-white p-5 rounded-xl shadow border space-y-3">
-                    <h4 class="text-xs font-black text-emerald-900 bg-emerald-50 p-2 rounded"><i class="fa-solid fa-file-csv"></i> استيراد/تصدير CSV</h4>
-                    <div class="space-y-2 text-xs">
-                        <div class="p-2 border border-dashed rounded bg-slate-50 text-center">
-                            <span class="block text-[10px] text-gray-500 font-bold mb-1">استيراد سيارات</span>
-                            <input type="file" id="csv-cars-file" accept=".csv" onchange="importCSVData(event,'cars')" class="w-full text-[10px]">
+                    <h4 class="text-xs font-black text-emerald-900 bg-emerald-50 p-2 rounded"><i class="fa-solid fa-file-csv"></i> استيراد/تصدير البيانات</h4>
+                    <div class="space-y-3 text-xs">
+                        <!-- سيارات -->
+                        <div class="border border-dashed rounded-lg p-2 bg-slate-50 space-y-1">
+                            <div class="flex justify-between items-center">
+                                <span class="text-[10px] text-gray-700 font-black">📋 استيراد سيارات</span>
+                                <button onclick="downloadTemplate('cars')" class="bg-blue-100 text-blue-700 border border-blue-200 px-2 py-0.5 rounded text-[10px] font-bold hover:bg-blue-200"><i class="fa-solid fa-download ml-0.5"></i> تحميل القالب</button>
+                            </div>
+                            <input type="file" id="csv-cars-file" accept=".csv,.xlsx" onchange="importCSVData(event,'cars')" class="w-full text-[10px]">
                         </div>
-                        <div class="p-2 border border-dashed rounded bg-slate-50 text-center">
-                            <span class="block text-[10px] text-gray-500 font-bold mb-1">استيراد مخالفات</span>
-                            <input type="file" id="csv-vios-file" accept=".csv" onchange="importCSVData(event,'violations')" class="w-full text-[10px]">
+                        <!-- مخالفات -->
+                        <div class="border border-dashed rounded-lg p-2 bg-slate-50 space-y-1">
+                            <div class="flex justify-between items-center">
+                                <span class="text-[10px] text-gray-700 font-black">⚠️ استيراد مخالفات</span>
+                                <button onclick="downloadTemplate('violations')" class="bg-rose-100 text-rose-700 border border-rose-200 px-2 py-0.5 rounded text-[10px] font-bold hover:bg-rose-200"><i class="fa-solid fa-download ml-0.5"></i> تحميل القالب</button>
+                            </div>
+                            <input type="file" id="csv-vios-file" accept=".csv,.xlsx" onchange="importCSVData(event,'violations')" class="w-full text-[10px]">
                         </div>
+                        <!-- خصومات -->
+                        <div class="border border-dashed rounded-lg p-2 bg-slate-50 space-y-1">
+                            <div class="flex justify-between items-center">
+                                <span class="text-[10px] text-gray-700 font-black">✅ استيراد خصومات</span>
+                                <button onclick="downloadTemplate('discounts')" class="bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-bold hover:bg-emerald-200"><i class="fa-solid fa-download ml-0.5"></i> تحميل القالب</button>
+                            </div>
+                            <input type="file" id="csv-disc-file" accept=".csv,.xlsx" onchange="importCSVData(event,'discounts')" class="w-full text-[10px]">
+                        </div>
+                        <!-- تصدير -->
                         <div class="flex gap-2">
-                            <button onclick="exportDataToCSV('cars')" class="w-1/2 bg-slate-800 text-white font-bold py-1.5 rounded text-[11px]"><i class="fa-solid fa-download"></i> تصدير السيارات</button>
-                            <button onclick="exportDataToCSV('violations')" class="w-1/2 bg-slate-800 text-white font-bold py-1.5 rounded text-[11px]"><i class="fa-solid fa-download"></i> تصدير المخالفات</button>
+                            <button onclick="exportDataToCSV('cars')" class="w-1/2 bg-slate-700 text-white font-bold py-1.5 rounded text-[11px]"><i class="fa-solid fa-download"></i> تصدير السيارات</button>
+                            <button onclick="exportDataToCSV('violations')" class="w-1/2 bg-slate-700 text-white font-bold py-1.5 rounded text-[11px]"><i class="fa-solid fa-download"></i> تصدير المخالفات</button>
                         </div>
                     </div>
                 </div>
@@ -274,7 +296,7 @@
 <div id="screen-supervisor" class="main-screen hidden space-y-6">
     <div id="sup-auth-barrier" class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl border text-center space-y-4">
         <div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl border"><i class="fa-solid fa-user-gear"></i></div>
-        <h3 class="text-base font-black">شاشة المشرف الميداني</h3>
+        <h3 class="text-base font-black">شاشة المشرف</h3>
         <p class="text-xs text-gray-500">اختر اسمك وأدخل كلمة مرورك</p>
         <select id="sup-auth-select" class="w-full p-2.5 border rounded-xl text-xs font-bold bg-slate-50"></select>
         <input type="password" id="sup-auth-pass" placeholder="كلمة مرور المشرف..." class="w-full p-2.5 text-center border rounded-xl font-mono tracking-widest text-sm" onkeydown="if(event.key==='Enter')verifySupervisorAccess()">
@@ -352,7 +374,7 @@
         </div>
 
         <div class="bg-rose-50 border border-rose-200 p-5 rounded-xl space-y-3">
-            <h4 class="text-xs font-black text-rose-950"><i class="fa-solid fa-bolt"></i> تسجيل مخالفة ميدانية فورية</h4>
+            <h4 class="text-xs font-black text-rose-950"><i class="fa-solid fa-bolt"></i> تسجيل مخالفة فورية</h4>
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
                 <input type="text" id="sup-instant-car" placeholder="رقم السيارة" class="p-2 border rounded text-center font-bold">
                 <input type="text" id="sup-instant-driver" placeholder="اسم السائق" class="p-2 border rounded text-center">
@@ -371,7 +393,7 @@
     <div id="traffic-auth-barrier" class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl border text-center space-y-4">
         <div class="w-16 h-16 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mx-auto text-2xl border"><i class="fa-solid fa-traffic-light"></i></div>
         <h3 class="text-base font-black">شاشة مدير الحركة</h3>
-        <p class="text-xs text-gray-500">اعتماد مصاريف المشرفين الميدانيين</p>
+        <p class="text-xs text-gray-500">اعتماد مصاريف المشرفين</p>
         <input type="password" id="traffic-login-pass" placeholder="كلمة مرور مدير الحركة..." class="w-full p-2.5 text-center border rounded-xl font-mono tracking-widest text-sm" onkeydown="if(event.key==='Enter')verifyTrafficManagerAccess()">
         <button onclick="verifyTrafficManagerAccess()" class="w-full bg-orange-600 text-white font-bold py-2 rounded-xl text-xs hover:bg-orange-700">دخول</button>
     </div>
@@ -462,12 +484,13 @@
         <h2 class="text-base font-black text-slate-900"><i class="fa-solid fa-chart-line text-blue-700"></i> مركز التقارير الشامل</h2>
         <p class="text-[11px] text-gray-400">بيانات دقيقة لحظياً لعام 2026</p>
     </div>
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs font-bold">
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs font-bold">
         <button onclick="switchReportTab('rep-vios')" id="tab-rep-vios" class="p-2.5 border rounded-xl bg-slate-50">مخالفات الأسطول</button>
         <button onclick="switchReportTab('rep-drivers')" id="tab-rep-drivers" class="p-2.5 border rounded-xl bg-slate-50">حساب السائقين</button>
         <button onclick="switchReportTab('rep-licenses-state')" id="tab-rep-licenses-state" class="p-2.5 border rounded-xl bg-slate-50">التراخيص</button>
         <button onclick="switchReportTab('rep-custodies')" id="tab-rep-custodies" class="p-2.5 border rounded-xl bg-slate-50">عهود المشرفين</button>
         <button onclick="switchReportTab('rep-invoices-history')" id="tab-rep-invoices-history" class="p-2.5 border rounded-xl bg-slate-50">سجل الفواتير</button>
+        <button onclick="switchReportTab('rep-statement')" id="tab-rep-statement" class="p-2.5 border rounded-xl bg-indigo-50 text-indigo-800">كشف الحساب</button>
     </div>
     <div id="zone-rep-vios" class="report-zone hidden space-y-3">
         <input type="text" id="search-vios-filter" onkeyup="renderReportsModule('vios')" placeholder="بحث..." class="w-full p-2 border rounded text-xs text-center font-bold bg-slate-50">
@@ -488,6 +511,39 @@
             <button onclick="exportInvoicesToCSV()" class="bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow hover:bg-emerald-800"><i class="fa-solid fa-file-csv ml-1"></i> تصدير Excel/CSV</button>
         </div>
         <div class="overflow-x-auto"><table class="w-full text-xs text-right border"><thead class="bg-slate-100 font-bold"><tr><th class="p-2">رقم الفاتورة</th><th class="p-2">التاريخ</th><th class="p-2">السيارة</th><th class="p-2">المشرف</th><th class="p-2">التفاصيل</th><th class="p-2 text-center">الإجمالي</th><th class="p-2 text-center">الحالة</th><th class="p-2 text-center">طباعة</th></tr></thead><tbody id="tbody-rep-invoices-history" class="divide-y"></tbody></table></div>
+    </div>
+    <div id="zone-rep-statement" class="report-zone hidden space-y-4">
+        <div class="bg-indigo-50 p-3 rounded-xl border border-indigo-200 flex flex-wrap gap-3 items-center">
+            <label class="text-xs font-black text-indigo-900"><i class="fa-solid fa-user-gear ml-1"></i> اختر المشرف:</label>
+            <select id="stmt-sup-select" onchange="renderAccountStatement()" class="p-2 border rounded-lg text-xs font-bold bg-white flex-1 min-w-40">
+                <option value="">-- اختر --</option>
+            </select>
+            <button onclick="exportStatementCSV()" class="bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-800"><i class="fa-solid fa-download ml-1"></i> تصدير CSV</button>
+        </div>
+        <div id="stmt-summary-cards" class="grid grid-cols-2 md:grid-cols-4 gap-3 hidden">
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
+                <div class="text-[10px] text-blue-600 font-bold">العهدة الحالية</div>
+                <div class="text-xl font-black text-blue-800 font-mono" id="stmt-custody">0 ج</div>
+            </div>
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
+                <div class="text-[10px] text-emerald-600 font-bold">إجمالي الفواتير المنتهية</div>
+                <div class="text-xl font-black text-emerald-800 font-mono" id="stmt-total-inv">0 ج</div>
+            </div>
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+                <div class="text-[10px] text-amber-600 font-bold">فواتير قيد الاعتماد</div>
+                <div class="text-xl font-black text-amber-800 font-mono" id="stmt-pending-inv">0 ج</div>
+            </div>
+            <div class="bg-rose-50 border border-rose-200 rounded-xl p-3 text-center">
+                <div class="text-[10px] text-rose-600 font-bold">عدد الفواتير</div>
+                <div class="text-xl font-black text-rose-800 font-mono" id="stmt-count-inv">0</div>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs text-right border" id="stmt-table">
+                <thead class="bg-slate-100 font-bold"><tr><th class="p-2">التاريخ</th><th class="p-2">رقم الفاتورة</th><th class="p-2">السيارة</th><th class="p-2">البيان</th><th class="p-2 text-center">المبلغ</th><th class="p-2 text-center">الحالة</th></tr></thead>
+                <tbody id="tbody-rep-statement" class="divide-y"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 </main>
@@ -531,7 +587,7 @@
     <!-- التوقيعات -->
     <div class="mt-10 grid grid-cols-3 gap-4 text-[11px] font-bold text-center">
         <div class="border-t-2 pt-2" style="border-color:#7a5c1e;">
-            <div style="color:#7a5c1e;">توقيع المشرف الميداني</div>
+            <div style="color:#7a5c1e;">مسئول التراخيص</div>
             <div class="mt-8 text-gray-400">........................</div>
         </div>
         <div class="border-t-2 pt-2" style="border-color:#7a5c1e;">
@@ -675,6 +731,8 @@ function syncAllDataStateFromServer(data) {
     renderReportsModule('licenses');
     renderReportsModule('custodies');
     renderReportsModule('invoices');
+    populateStatementSelect();
+    renderAdminInvoicesTable();
     if(currentSelectedSupervisorKey && systemData.supervisors[currentSelectedSupervisorKey]) {
         document.getElementById('sup-available-custody-lbl').innerText = parseFloat(systemData.supervisors[currentSelectedSupervisorKey].custody||0).toLocaleString()+" ج.م";
     }
@@ -797,7 +855,7 @@ function switchAdminTab(tabId) {
     document.querySelectorAll('.admin-tab-content').forEach(t=>t.classList.add('hidden'));
     document.querySelectorAll('.border-b button').forEach(b=>b.classList.remove('bg-blue-900','text-white'));
     document.getElementById(tabId).classList.remove('hidden');
-    const map = {'sub-admin-vios':'tab-admin-vios','sub-admin-cars':'tab-admin-cars','sub-admin-licenses':'tab-admin-licenses','sub-admin-sups':'tab-admin-sups','sub-admin-security':'tab-admin-security'};
+    const map = {'sub-admin-vios':'tab-admin-vios','sub-admin-cars':'tab-admin-cars','sub-admin-licenses':'tab-admin-licenses','sub-admin-sups':'tab-admin-sups','sub-admin-security':'tab-admin-security','sub-admin-invoices':'tab-admin-invoices'};
     if(map[tabId]) document.getElementById(map[tabId]).classList.add('bg-blue-900','text-white');
 }
 
@@ -887,13 +945,30 @@ function importCSVData(event, type) {
         const lines=e.target.result.split('\n'); let count=0;
         for(let i=1;i<lines.length;i++){
             if(!lines[i].trim()) continue;
-            const c=lines[i].split(',');
-            if(type==='cars'&&c.length>=7){ db.ref('cars').push({ id:c[0].trim(),chassis:c[1].trim(),motor:c[2].trim(),type:c[3].trim(),model:c[4].trim(),expiry:c[5].trim(),company:c[6].trim(),insType:"سائق",driverName:c[7]?c[7].trim():"غير محدد",insAmount:0 }); count++; }
-            else if(type==='violations'&&c.length>=4){ db.ref('violations').push({ date:c[0].trim(),car:c[1].trim(),driver:c[2].trim(),desc:c[3].trim(),amount:parseFloat(c[4]||0) }); count++; }
+            const c=lines[i].split(',').map(x=>x.trim().replace(/^"|"$/g,''));
+            if(type==='cars'&&c.length>=7){ db.ref('cars').push({ id:c[0],chassis:c[1],motor:c[2],type:c[3],model:c[4],expiry:c[5],company:c[6],insType:"سائق",driverName:c[7]||"غير محدد",insAmount:0 }); count++; }
+            else if(type==='violations'&&c.length>=4){ db.ref('violations').push({ date:c[0],car:c[1],driver:c[2],desc:c[3],amount:parseFloat(c[4]||0) }); count++; }
+            else if(type==='discounts'&&c.length>=3){ db.ref('violations').push({ date:c[0]||new Date().toISOString().split('T')[0],car:"إدارة",driver:c[1],desc:`[خصم مستورد]: ${c[2]}`,amount:-Math.abs(parseFloat(c[3]||0)) }); count++; }
         }
         alert(`✅ تم استيراد (${count}) سجل.`);
+        event.target.value='';
     };
-    reader.readAsText(file);
+    reader.readAsText(file, 'utf-8');
+}
+
+function downloadTemplate(type) {
+    let csv = "\uFEFF";
+    if(type==='cars')
+        csv += "رقم_السيارة,الشاسيه,الموتور,النوع,الموديل,تاريخ_انتهاء_الترخيص,الشركة,اسم_السائق\n8245,SH10245,M9082,جامبو,2023,2026-12-31,مصر للتفريخ,اسم السائق";
+    else if(type==='violations')
+        csv += "التاريخ,رقم_السيارة,اسم_السائق,بيان_المخالفة,المبلغ\n2026-01-15,8245,اسم السائق,رادار طريق الكيلو 17,700";
+    else if(type==='discounts')
+        csv += "التاريخ,اسم_السائق,سبب_الخصم,مبلغ_الخصم\n2026-01-15,اسم السائق,خصم شهري,200";
+    const a=document.createElement("a");
+    const names={cars:'قالب_السيارات',violations:'قالب_المخالفات',discounts:'قالب_الخصومات'};
+    a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
+    a.download=names[type]+".csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
 function exportDataToCSV(type) {
@@ -1086,6 +1161,7 @@ function submitInvoiceForApproval() {
         document.getElementById('sup-active-invoice-zone').classList.add('hidden');
         activeInvoiceData=null;
         ['exp-form-car','exp-form-amount','exp-form-desc','exp-form-place','exp-form-license-desc'].forEach(id=>document.getElementById(id).value="");
+        switchMainScreen('reports'); switchReportTab('rep-invoices-history');
     });
 }
 
@@ -1128,7 +1204,7 @@ function renderTrafficManagerScreen() {
 function approveInvoice(key) {
     let inv=systemData.invoices[key];
     if(confirm(`تأكيد اعتماد الفاتورة ${inv.id} للسيارة ${inv.car}؟\nستُرسل للمدير المالي للطباعة والخصم.`)) {
-        db.ref('invoices/'+key+'/status').set('approved',()=>{ db.ref('invoices/'+key+'/approvedAt').set(new Date().toISOString()); alert(`✅ تم اعتماد الفاتورة ${inv.id}. ستظهر في شاشة المدير المالي.`); });
+        db.ref('invoices/'+key+'/status').set('approved',()=>{ db.ref('invoices/'+key+'/approvedAt').set(new Date().toISOString()); alert(`✅ تم اعتماد الفاتورة ${inv.id}. ستظهر في شاشة المدير المالي.`); switchMainScreen('reports'); switchReportTab('rep-invoices-history'); });
     }
 }
 
@@ -1139,6 +1215,7 @@ function rejectInvoice(key) {
         db.ref('invoices/'+key+'/rejectedAt').set(new Date().toISOString());
         if(reason) db.ref('invoices/'+key+'/rejectionReason').set(reason);
         alert(`تم رفض الفاتورة ${inv.id}.`);
+        switchMainScreen('reports'); switchReportTab('rep-invoices-history');
     });
 }
 
@@ -1192,7 +1269,7 @@ function finalizeAndPrintInvoice(key) {
     db.ref('invoices/'+key+'/status').set('finalized');
     db.ref('invoices/'+key+'/finalizedAt').set(new Date().toISOString());
     activeInvoiceData=inv;
-    lastPrintedScreen='finance';
+    lastPrintedScreen='finance'; 
     triggerPaperInvoicePrintWorkflow(total, sup.name);
 }
 
@@ -1239,6 +1316,8 @@ function switchReportTab(zoneId) {
     document.querySelectorAll('#screen-reports button').forEach(b=>b.classList.remove('bg-blue-950','text-white'));
     document.getElementById('zone-'+zoneId).classList.remove('hidden');
     document.getElementById('tab-'+zoneId).classList.add('bg-blue-950','text-white');
+    if(zoneId==='rep-statement') { populateStatementSelect(); renderAccountStatement(); }
+    if(zoneId==='rep-invoices-history') renderReportsModule('invoices');
 }
 
 function renderReportsModule(mod) {
@@ -1258,7 +1337,7 @@ function renderReportsModule(mod) {
     }
     if(mod==='custodies') {
         const tb=document.getElementById('tbody-rep-custodies'); tb.innerHTML="";
-        Object.values(systemData.supervisors||{}).forEach(s=>{ tb.innerHTML+=`<tr><td class="p-2 font-bold">${s.name}</td><td class="p-2 text-emerald-700 font-black font-mono">${s.custody} ج.م</td><td class="p-2 text-center"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px]">ميداني نشط</span></td></tr>`; });
+        Object.values(systemData.supervisors||{}).forEach(s=>{ tb.innerHTML+=`<tr><td class="p-2 font-bold">${s.name}</td><td class="p-2 text-emerald-700 font-black font-mono">${s.custody} ج.م</td><td class="p-2 text-center"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px]">مسئول تراخيص</span></td></tr>`; });
     }
     if(mod==='invoices') {
         const tb=document.getElementById('tbody-rep-invoices-history'); tb.innerHTML="";
@@ -1382,6 +1461,124 @@ function supervisorCancelInvoice(key) {
 // ==========================================
 // 📤 تصدير الفواتير CSV
 // ==========================================
+
+// ==========================================
+// 🗑️ حذف الفاتورة (أدمن فقط)
+// ==========================================
+function adminDeleteInvoice(key) {
+    const inv = systemData.invoices[key];
+    if(!inv) return;
+    if(confirm(`حذف الفاتورة ${inv.id} نهائياً؟\nهذا الإجراء لا يمكن التراجع عنه.`)) {
+        db.ref('invoices/'+key).set(null, ()=>{
+            alert('✅ تم حذف الفاتورة.');
+            renderAdminInvoicesTable();
+        });
+    }
+}
+
+function renderAdminInvoicesTable() {
+    const tbody = document.getElementById('adm-invoices-tbody');
+    if(!tbody) return;
+    const q = (document.getElementById('adm-inv-search')?.value||'').toLowerCase();
+    const statusMap = {pending_approval:{l:'⏳ انتظار الاعتماد',c:'bg-amber-100 text-amber-700'},approved:{l:'✔ معتمدة',c:'bg-blue-100 text-blue-700'},finalized:{l:'✔✔ منتهية',c:'bg-emerald-100 text-emerald-700'},rejected:{l:'✘ مرفوضة',c:'bg-red-100 text-red-700'}};
+    tbody.innerHTML = "";
+    let rows = Object.keys(systemData.invoices||{});
+    if(!rows.length){ tbody.innerHTML='<tr><td colspan="7" class="p-4 text-center text-gray-400">لا توجد فواتير.</td></tr>'; return; }
+    rows.forEach(key=>{
+        const inv = systemData.invoices[key];
+        const total = (inv.totalSum)||(inv.items||[]).reduce((a,c)=>a+parseFloat(c.amount||0),0);
+        const st = statusMap[inv.status]||{l:inv.status,c:'bg-gray-100 text-gray-700'};
+        const text = `${inv.id} ${inv.car} ${inv.supervisorName||''}`.toLowerCase();
+        if(q && !text.includes(q)) return;
+        tbody.innerHTML += `<tr class="hover:bg-red-50/30">
+            <td class="p-2 font-mono text-blue-900 font-bold text-[11px]">${inv.id}</td>
+            <td class="p-2 font-mono text-[11px]">${inv.date}</td>
+            <td class="p-2 font-bold">${inv.car}</td>
+            <td class="p-2 text-gray-500 text-[11px]">${inv.supervisorName||'—'}</td>
+            <td class="p-2 text-center font-mono font-bold text-emerald-700">${total} ج</td>
+            <td class="p-2 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${st.c}">${st.l}</span></td>
+            <td class="p-2 text-center"><button onclick="adminDeleteInvoice('${key}')" class="bg-red-600 text-white px-3 py-1 rounded text-[10px] font-bold hover:bg-red-700">🗑️ حذف</button></td>
+        </tr>`;
+    });
+}
+
+// ==========================================
+// 📊 كشف حساب المشرف
+// ==========================================
+function populateStatementSelect() {
+    const sel = document.getElementById('stmt-sup-select');
+    if(!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">-- اختر المشرف --</option>';
+    Object.keys(systemData.supervisors||{}).forEach(key=>{
+        sel.innerHTML += `<option value="${key}">${systemData.supervisors[key].name}</option>`;
+    });
+    if(prev) sel.value = prev;
+}
+
+function renderAccountStatement() {
+    const key = document.getElementById('stmt-sup-select')?.value;
+    const tbody = document.getElementById('tbody-rep-statement');
+    const cards = document.getElementById('stmt-summary-cards');
+    if(!tbody) return;
+    if(!key){ tbody.innerHTML='<tr><td colspan="6" class="p-4 text-center text-gray-400">اختر مشرفاً من القائمة.</td></tr>'; cards.classList.add('hidden'); return; }
+    const sup = systemData.supervisors[key];
+    if(!sup){ tbody.innerHTML=''; cards.classList.add('hidden'); return; }
+
+    const invs = systemData.invoices||{};
+    let rows = [];
+    let totalFinalized = 0, totalPending = 0, countInv = 0;
+
+    Object.keys(invs).forEach(k=>{
+        const inv = invs[k];
+        if(inv.supervisorKey !== key) return;
+        const total = (inv.totalSum)||(inv.items||[]).reduce((a,c)=>a+parseFloat(c.amount||0),0);
+        countInv++;
+        const statusLabel = {pending_approval:'⏳ انتظار',approved:'✔ معتمدة',finalized:'✔✔ منتهية',rejected:'✘ مرفوضة'}[inv.status]||inv.status;
+        const cls = {pending_approval:'text-amber-600',approved:'text-blue-600',finalized:'text-emerald-600',rejected:'text-red-500'}[inv.status]||'text-gray-600';
+        if(inv.status==='finalized') totalFinalized += total;
+        else if(inv.status==='pending_approval'||inv.status==='approved') totalPending += total;
+        rows.push({date:inv.date||'', invId:inv.id, car:inv.car, desc:`${inv.place||''} ${inv.licenseDesc?'- '+inv.licenseDesc:''}`.trim(), amount:`-${total}`, cls, statusLabel, sort:inv.submittedAt||inv.date||''});
+    });
+
+    rows.sort((a,b)=>b.sort.localeCompare(a.sort));
+    tbody.innerHTML = rows.length ? rows.map(r=>`
+        <tr class="hover:bg-slate-50">
+            <td class="p-2 font-mono text-[11px]">${r.date}</td>
+            <td class="p-2 font-mono text-blue-900 font-bold text-[11px]">${r.invId}</td>
+            <td class="p-2 font-bold">${r.car}</td>
+            <td class="p-2 text-gray-500 text-[11px]">${r.desc||'—'}</td>
+            <td class="p-2 text-center font-black font-mono text-rose-600">${r.amount} ج</td>
+            <td class="p-2 text-center"><span class="font-bold text-[11px] ${r.cls}">${r.statusLabel}</span></td>
+        </tr>`).join('') : '<tr><td colspan="6" class="p-4 text-center text-gray-400">لا توجد فواتير لهذا المشرف.</td></tr>';
+
+    cards.classList.remove('hidden');
+    document.getElementById('stmt-custody').innerText = parseFloat(sup.custody||0).toLocaleString()+' ج';
+    document.getElementById('stmt-total-inv').innerText = totalFinalized.toLocaleString()+' ج';
+    document.getElementById('stmt-pending-inv').innerText = totalPending.toLocaleString()+' ج';
+    document.getElementById('stmt-count-inv').innerText = countInv;
+}
+
+function exportStatementCSV() {
+    const key = document.getElementById('stmt-sup-select')?.value;
+    if(!key) return alert("اختر مشرفاً أولاً!");
+    const sup = systemData.supervisors[key];
+    const invs = systemData.invoices||{};
+    const statusMap = {pending_approval:'انتظار الاعتماد',approved:'معتمدة',finalized:'منتهية ومطبوعة',rejected:'مرفوضة'};
+    let csv = "\uFEFF";
+    csv += `كشف حساب: ${sup.name}\n`;
+    csv += `العهدة الحالية: ${sup.custody} جنيه\n\n`;
+    csv += "التاريخ,رقم الفاتورة,رقم السيارة,البيان,الإجمالي,الحالة\n";
+    Object.values(invs).filter(inv=>inv.supervisorKey===key).forEach(inv=>{
+        const total = (inv.totalSum)||(inv.items||[]).reduce((a,c)=>a+parseFloat(c.amount||0),0);
+        csv += `"${inv.date}","${inv.id}","${inv.car}","${inv.place||''}","${total}","${statusMap[inv.status]||inv.status}"\n`;
+    });
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
+    a.download = `كشف_حساب_${sup.name}_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
 function exportInvoicesToCSV() {
     const statusMap = {pending_approval:'انتظار الاعتماد',approved:'معتمدة',finalized:'منتهية ومطبوعة',rejected:'مرفوضة'};
     let csv = "\uFEFF"; // BOM for Arabic
