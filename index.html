@@ -50,7 +50,8 @@
         <div class="flex flex-wrap gap-1 bg-slate-950/40 p-1 rounded-xl border border-slate-700">
             <button onclick="switchMainScreen('dashboard')" id="nav-dashboard" class="px-3 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition flex items-center gap-1"><i class="fa-solid fa-house"></i> الرئيسية</button>
             <button onclick="switchMainScreen('admin')" id="nav-admin" class="px-3 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition flex items-center gap-1"><i class="fa-solid fa-user-shield"></i> الأدمن 🔒</button>
-            <button onclick="switchMainScreen('supervisor')" id="nav-supervisor" class="px-3 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition flex items-center gap-1"><i class="fa-solid fa-user-gear"></i> المشرف 🔒</button>
+            <button onclick="switchMainScreen('supervisor')" id="nav-supervisor" class="px-3 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition flex items-center gap-1"><i class="fa-solid fa-id-card"></i> مسئول التراخيص 🔒</button>
+              <button onclick="switchMainScreen('manager')" id="nav-manager" class="px-3 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition flex items-center gap-1"><i class="fa-solid fa-user-gear"></i> المشرف 🔒</button>
             <button onclick="switchMainScreen('traffic')" id="nav-traffic" class="px-3 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition flex items-center gap-1"><i class="fa-solid fa-traffic-light"></i> مدير الحركة 🔒 <span id="badge-traffic" class="badge hidden">0</span></button>
             <button onclick="switchMainScreen('finance')" id="nav-finance" class="px-3 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition flex items-center gap-1"><i class="fa-solid fa-wallet"></i> المدير المالي 🔒 <span id="badge-finance" class="badge hidden">0</span></button>
             <button onclick="switchMainScreen('reports')" id="nav-reports" class="px-3 py-2 rounded-lg text-xs font-bold text-gray-300 hover:text-white transition flex items-center gap-1"><i class="fa-solid fa-chart-pie"></i> التقارير</button>
@@ -303,12 +304,12 @@
     </div>
 </div>
 
-<!-- ======== شاشة المشرف ======== -->
+<!-- ======== شاشة مسئول التراخيص ======== -->
 <div id="screen-supervisor" class="main-screen hidden space-y-6">
     <div id="sup-auth-barrier" class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl border text-center space-y-4">
         <div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl border"><i class="fa-solid fa-user-gear"></i></div>
-        <h3 class="text-base font-black">شاشة المشرف</h3>
-        <p class="text-xs text-gray-500">اختر اسمك وأدخل كلمة مرورك</p>
+        <h3 class="text-base font-black">شاشة مسئول التراخيص</h3>
+        <p class="text-xs text-gray-500">اختر اسمك وأدخل كلمة مرورك (مسئول التراخيص)</p>
         <select id="sup-auth-select" class="w-full p-2.5 border rounded-xl text-xs font-bold bg-slate-50"></select>
         <input type="password" id="sup-auth-pass" placeholder="كلمة مرور المشرف..." class="w-full p-2.5 text-center border rounded-xl font-mono tracking-widest text-sm" onkeydown="if(event.key==='Enter')verifySupervisorAccess()">
         <button onclick="verifySupervisorAccess()" class="w-full bg-emerald-600 text-white font-bold py-2 rounded-xl text-xs hover:bg-emerald-700">دخول</button>
@@ -456,7 +457,272 @@
     </div>
 </div>
 
-<!-- ======== شاشة مدير الحركة ======== -->
+<!-- ======== شاشة المشرف (المصروفات العامة) ======== -->
+  <div id="screen-manager" class="main-screen hidden space-y-6">
+
+    <!-- حاجز المصادقة -->
+    <div id="mgr-auth-barrier" class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl border text-center space-y-4">
+      <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto text-2xl border"><i class="fa-solid fa-user-gear"></i></div>
+      <h3 class="text-base font-black">شاشة المشرف</h3>
+      <p class="text-xs text-gray-500">أدخل كلمة مرور المشرف للدخول</p>
+      <input type="password" id="mgr-auth-pass" placeholder="كلمة المرور..." class="w-full p-2.5 text-center border rounded-xl font-mono tracking-widest text-sm" onkeydown="if(event.key==='Enter')verifyManagerAccess()">
+      <button onclick="verifyManagerAccess()" class="w-full bg-blue-600 text-white font-bold py-2 rounded-xl text-xs hover:bg-blue-700">دخول</button>
+    </div>
+
+    <!-- المحتوى الحقيقي -->
+    <div id="mgr-real-content" class="hidden space-y-6">
+
+      <!-- شريط العنوان والخروج -->
+      <div class="bg-white p-4 rounded-xl shadow border flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-user-gear text-blue-600 text-lg"></i>
+          <div>
+            <div class="text-sm font-black text-slate-900">شاشة المشرف — المصروفات العامة</div>
+            <div class="text-[10px] text-gray-400">إدارة المصروفات النقدية والفيزا وتحميلها على السيارات</div>
+          </div>
+        </div>
+        <button onclick="logoutManager()" class="bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-200">خروج</button>
+      </div>
+
+      <!-- تبويبات الشاشة -->
+      <div class="flex gap-2 flex-wrap">
+        <button onclick="switchManagerTab('expenses')" id="mgr-tab-expenses" class="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white border border-blue-700">
+          <i class="fa-solid fa-receipt ml-1"></i> إضافة مصروف عام
+        </button>
+        <button onclick="switchManagerTab('assign')" id="mgr-tab-assign" class="px-4 py-2 rounded-xl text-xs font-bold bg-white text-gray-600 border">
+          <i class="fa-solid fa-car ml-1"></i> تحميل على سيارة
+        </button>
+        <button onclick="switchManagerTab('statement')" id="mgr-tab-statement" class="px-4 py-2 rounded-xl text-xs font-bold bg-white text-gray-600 border">
+          <i class="fa-solid fa-wallet ml-1"></i> كشف الحساب
+        </button>
+        <button onclick="switchManagerTab('cards')" id="mgr-tab-cards" class="px-4 py-2 rounded-xl text-xs font-bold bg-white text-gray-600 border">
+          <i class="fa-solid fa-credit-card ml-1"></i> بطاقات الفيزا
+        </button>
+      </div>
+
+      <!-- تبويب: إضافة مصروف عام -->
+      <div id="mgr-zone-expenses" class="space-y-4">
+        <div class="bg-white p-5 rounded-xl shadow border space-y-4">
+          <h4 class="text-xs font-black text-blue-900 bg-blue-50 p-2 rounded flex items-center gap-2">
+            <i class="fa-solid fa-plus-circle text-blue-500"></i> إضافة مصروف عام جديد
+          </h4>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+            <div class="col-span-2 md:col-span-3">
+              <label class="block text-[10px] text-gray-500 mb-0.5 font-bold">بيان المصروف:</label>
+              <input type="text" id="mgr-exp-desc" placeholder="مثال: استمارات تسجيل سيارات" class="w-full p-2 border rounded-lg text-center font-bold">
+            </div>
+            <div>
+              <label class="block text-[10px] text-gray-500 mb-0.5 font-bold">الكمية:</label>
+              <input type="number" id="mgr-exp-qty" placeholder="3" min="1" class="w-full p-2 border rounded-lg text-center font-bold text-blue-700">
+            </div>
+            <div>
+              <label class="block text-[10px] text-gray-500 mb-0.5 font-bold">سعر الوحدة (جنيه):</label>
+              <input type="number" id="mgr-exp-price" placeholder="50" class="w-full p-2 border rounded-lg text-center font-bold text-emerald-600">
+            </div>
+            <div>
+              <label class="block text-[10px] text-gray-500 mb-0.5 font-bold">التاريخ:</label>
+              <input type="date" id="mgr-exp-date" class="w-full p-2 border rounded-lg text-center">
+            </div>
+            <div class="col-span-2 md:col-span-3">
+              <label class="block text-[10px] text-gray-500 mb-0.5 font-bold">طريقة الدفع:</label>
+              <div class="flex gap-2">
+                <label class="flex-1 flex items-center gap-2 p-2.5 border rounded-lg cursor-pointer hover:bg-green-50 has-[:checked]:bg-green-50 has-[:checked]:border-green-400">
+                  <input type="radio" name="mgr-pay-method" value="cash" id="mgr-pay-cash" checked onchange="toggleVisaCardSelect()">
+                  <span class="font-bold text-xs">💵 نقدي</span>
+                </label>
+                <label class="flex-1 flex items-center gap-2 p-2.5 border rounded-lg cursor-pointer hover:bg-blue-50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-400">
+                  <input type="radio" name="mgr-pay-method" value="visa" id="mgr-pay-visa" onchange="toggleVisaCardSelect()">
+                  <span class="font-bold text-xs">💳 فيزا</span>
+                </label>
+              </div>
+            </div>
+            <div id="mgr-visa-card-row" class="col-span-2 md:col-span-3 hidden">
+              <label class="block text-[10px] text-gray-500 mb-0.5 font-bold">اختر بطاقة الفيزا:</label>
+              <div class="flex gap-2">
+                <select id="mgr-visa-select" class="flex-1 p-2 border rounded-lg text-xs font-bold bg-white">
+                  <option value="">-- اختر البطاقة --</option>
+                </select>
+                <button onclick="switchManagerTab('cards')" class="bg-blue-100 text-blue-700 px-3 rounded-lg text-xs font-bold border border-blue-200">+ بطاقة جديدة</button>
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-between items-center pt-2 border-t">
+            <div class="text-xs font-black text-slate-700">الإجمالي: <span id="mgr-exp-total-preview" class="text-base text-blue-700 font-mono">0</span> جنيه</div>
+            <button onclick="addGeneralExpense()" class="bg-blue-600 text-white font-black text-xs px-6 py-2 rounded-xl shadow hover:bg-blue-700">
+              <i class="fa-solid fa-save ml-1"></i> حفظ المصروف
+            </button>
+          </div>
+        </div>
+
+        <!-- قائمة المصروفات العامة -->
+        <div class="bg-white p-4 rounded-xl shadow border space-y-3">
+          <h4 class="text-xs font-black text-slate-800 bg-slate-50 p-2 rounded flex items-center gap-2">
+            <i class="fa-solid fa-list text-blue-500"></i> سجل المصروفات العامة
+          </h4>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-right border rounded-lg overflow-hidden">
+              <thead class="bg-gradient-to-r from-slate-800 to-slate-700 text-white">
+                <tr>
+                  <th class="p-2">التاريخ</th>
+                  <th class="p-2">البيان</th>
+                  <th class="p-2 text-center">الكمية</th>
+                  <th class="p-2 text-center">المتبقي</th>
+                  <th class="p-2 text-center">سعر الوحدة</th>
+                  <th class="p-2 text-center">الإجمالي</th>
+                  <th class="p-2 text-center">الدفع</th>
+                  <th class="p-2 text-center">حذف</th>
+                </tr>
+              </thead>
+              <tbody id="mgr-expenses-tbody" class="divide-y">
+                <tr><td colspan="8" class="text-center text-gray-400 p-4">لا توجد مصروفات بعد.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- تبويب: تحميل على سيارة -->
+      <div id="mgr-zone-assign" class="space-y-4 hidden">
+        <div class="bg-white p-5 rounded-xl shadow border space-y-4">
+          <h4 class="text-xs font-black text-blue-900 bg-blue-50 p-2 rounded flex items-center gap-2">
+            <i class="fa-solid fa-car text-blue-500"></i> تحميل مصروف على سيارة
+          </h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div>
+              <label class="block text-[10px] text-gray-500 mb-0.5 font-bold">اختر المصروف العام:</label>
+              <select id="mgr-assign-expense-select" class="w-full p-2 border rounded-lg text-xs font-bold bg-white" onchange="updateAssignAvailable()">
+                <option value="">-- اختر مصروف --</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-gray-500 mb-0.5 font-bold">رقم السيارة:</label>
+              <input type="text" id="mgr-assign-car" placeholder="مثال: 5724" class="w-full p-2 border rounded-lg text-center font-bold text-blue-800">
+            </div>
+            <div>
+              <label class="block text-[10px] text-gray-500 mb-0.5 font-bold">الكمية المطلوبة:</label>
+              <input type="number" id="mgr-assign-qty" placeholder="1" min="1" class="w-full p-2 border rounded-lg text-center font-bold">
+            </div>
+            <div>
+              <label class="block text-[10px] text-gray-500 mb-0.5 font-bold">المتاح للتحميل:</label>
+              <div id="mgr-assign-available" class="p-2 border rounded-lg text-center font-black text-emerald-700 bg-emerald-50">—</div>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-[10px] text-gray-500 mb-0.5 font-bold">بيان الإضافة على الفاتورة:</label>
+              <input type="text" id="mgr-assign-note" placeholder="مثال: استمارة تسجيل" class="w-full p-2 border rounded-lg text-center">
+            </div>
+          </div>
+          <div class="flex justify-end">
+            <button onclick="assignExpenseToCar()" class="bg-emerald-600 text-white font-black text-xs px-6 py-2 rounded-xl shadow hover:bg-emerald-700">
+              <i class="fa-solid fa-link ml-1"></i> تحميل على السيارة
+            </button>
+          </div>
+        </div>
+
+        <!-- سجل التحميلات -->
+        <div class="bg-white p-4 rounded-xl shadow border space-y-2">
+          <h4 class="text-xs font-black text-slate-800 bg-slate-50 p-2 rounded flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left text-blue-500"></i> سجل التحميلات على السيارات
+          </h4>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-right border rounded-lg overflow-hidden">
+              <thead class="bg-gradient-to-r from-slate-800 to-slate-700 text-white">
+                <tr>
+                  <th class="p-2">التاريخ</th>
+                  <th class="p-2">المصروف</th>
+                  <th class="p-2 text-center">السيارة</th>
+                  <th class="p-2 text-center">الكمية</th>
+                  <th class="p-2 text-center">المبلغ</th>
+                </tr>
+              </thead>
+              <tbody id="mgr-assignments-tbody" class="divide-y">
+                <tr><td colspan="5" class="text-center text-gray-400 p-4">لا توجد تحميلات بعد.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- تبويب: كشف الحساب -->
+      <div id="mgr-zone-statement" class="space-y-4 hidden">
+        <div class="bg-white p-5 rounded-xl shadow border space-y-3">
+          <h4 class="text-xs font-black text-blue-900 bg-blue-50 p-2 rounded flex items-center gap-2">
+            <i class="fa-solid fa-wallet text-blue-500"></i> كشف حساب المصروفات
+          </h4>
+          <div class="flex gap-2 flex-wrap">
+            <button onclick="filterStatement('all')" id="stmt-filter-all" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white">الكل</button>
+            <button onclick="filterStatement('cash')" id="stmt-filter-cash" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-gray-600 border">💵 نقدي</button>
+            <button onclick="filterStatement('visa')" id="stmt-filter-visa" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-gray-600 border">💳 فيزا (الكل)</button>
+            <select id="stmt-filter-card" onchange="filterStatement('card')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white border">
+              <option value="">-- فيزا محددة --</option>
+            </select>
+          </div>
+          <!-- ملخص -->
+          <div class="grid grid-cols-3 gap-3 text-center">
+            <div class="bg-green-50 border border-green-200 rounded-xl p-3">
+              <div class="text-[10px] text-gray-500 font-bold">إجمالي نقدي</div>
+              <div class="text-lg font-black text-green-700 font-mono" id="stmt-total-cash">0 ج.م</div>
+            </div>
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-3">
+              <div class="text-[10px] text-gray-500 font-bold">إجمالي فيزا</div>
+              <div class="text-lg font-black text-blue-700 font-mono" id="stmt-total-visa">0 ج.م</div>
+            </div>
+            <div class="bg-purple-50 border border-purple-200 rounded-xl p-3">
+              <div class="text-[10px] text-gray-500 font-bold">إجمالي عام</div>
+              <div class="text-lg font-black text-purple-700 font-mono" id="stmt-total-all">0 ج.م</div>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-right border rounded-lg overflow-hidden">
+              <thead class="bg-gradient-to-r from-slate-800 to-slate-700 text-white">
+                <tr>
+                  <th class="p-2">التاريخ</th>
+                  <th class="p-2">البيان</th>
+                  <th class="p-2 text-center">الكمية</th>
+                  <th class="p-2 text-center">الإجمالي</th>
+                  <th class="p-2 text-center">طريقة الدفع</th>
+                </tr>
+              </thead>
+              <tbody id="stmt-tbody" class="divide-y">
+                <tr><td colspan="5" class="text-center text-gray-400 p-4">لا توجد بيانات.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- تبويب: بطاقات الفيزا -->
+      <div id="mgr-zone-cards" class="space-y-4 hidden">
+        <div class="bg-white p-5 rounded-xl shadow border space-y-4">
+          <h4 class="text-xs font-black text-blue-900 bg-blue-50 p-2 rounded flex items-center gap-2">
+            <i class="fa-solid fa-credit-card text-blue-500"></i> إدارة بطاقات الفيزا
+          </h4>
+          <div class="flex gap-2 text-xs">
+            <input type="text" id="mgr-card-name" placeholder="اسم البطاقة (مثال: فيزا CIB)" class="flex-1 p-2 border rounded-lg text-center font-bold">
+            <input type="text" id="mgr-card-last4" placeholder="آخر 4 أرقام" maxlength="4" class="w-28 p-2 border rounded-lg text-center font-mono tracking-widest">
+            <button onclick="addVisaCard()" class="bg-blue-600 text-white font-black px-4 rounded-lg hover:bg-blue-700">+ إضافة</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-right border rounded-lg overflow-hidden">
+              <thead class="bg-gradient-to-r from-blue-800 to-blue-600 text-white">
+                <tr>
+                  <th class="p-2">اسم البطاقة</th>
+                  <th class="p-2 text-center">آخر 4 أرقام</th>
+                  <th class="p-2 text-center">إجمالي الإنفاق</th>
+                  <th class="p-2 text-center">حذف</th>
+                </tr>
+              </thead>
+              <tbody id="mgr-cards-tbody" class="divide-y">
+                <tr><td colspan="4" class="text-center text-gray-400 p-4">لا توجد بطاقات مضافة.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ======== شاشة مدير الحركة ======== -->
 <div id="screen-traffic" class="main-screen hidden space-y-6">
     <div id="traffic-auth-barrier" class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl border text-center space-y-4">
         <div class="w-16 h-16 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mx-auto text-2xl border"><i class="fa-solid fa-traffic-light"></i></div>
@@ -617,7 +883,7 @@
 </main>
 
 <!-- ======== منطقة الطباعة ======== -->
-  <div id="print-invoice-zone" class="hidden" style="width:148mm;min-height:210mm;background:white;direction:rtl;font-family:Arial,sans-serif;box-sizing:border-box;position:relative;overflow:hidden;">
+  <div id="print-invoice-zone" class="hidden no-print-zone" style="width:148mm;min-height:210mm;background:white;direction:rtl;font-family:Arial,sans-serif;box-sizing:border-box;position:relative;overflow:hidden;">
 
     <!-- شريط علوي ذهبي -->
     <div style="background:linear-gradient(135deg,#7a5c1e,#c9a84c,#7a5c1e);height:6mm;width:100%;"></div>
@@ -739,7 +1005,7 @@ try {
     } else { setupFallbackLocalDatabase(); }
 } catch (e) { setupFallbackLocalDatabase(); }
 
-let systemData = { cars:{}, violations:{}, supervisors:{}, invoices:{}, config:{ adminPass:"1234", trafficManagerPass:"5678", financeManagerPass:"9999" } };
+let systemData = { cars:{}, violations:{}, supervisors:{}, invoices:{}, config:{ adminPass:"1234", trafficManagerPass:"5678", financeManagerPass:"9999", managerPass:"0000" } };
 let activeInvoiceData = null;
 let currentSelectedSupervisorKey = "";
 let currentSupervisorName = "";
@@ -808,7 +1074,7 @@ function setupFallbackLocalDatabase() {
 db.ref("/").on("value", (snapshot)=>{ const v=snapshot.val(); if(v) syncAllDataStateFromServer(v); });
 
 function syncAllDataStateFromServer(data) {
-    systemData = data || { cars:{}, violations:{}, supervisors:{}, invoices:{}, config:{adminPass:"1234",trafficManagerPass:"5678",financeManagerPass:"9999"} };
+    systemData = data || { cars:{}, violations:{}, supervisors:{}, invoices:{}, config:{adminPass:"1234",trafficManagerPass:"5678",financeManagerPass:"9999",managerPass:"0000"} };
     if(!systemData.config) systemData.config = { adminPass:"1234", trafficManagerPass:"5678", financeManagerPass:"9999" };
     if(!systemData.config.trafficManagerPass) systemData.config.trafficManagerPass = "5678";
     if(!systemData.config.financeManagerPass) systemData.config.financeManagerPass = "9999";
@@ -1803,6 +2069,296 @@ resetIdleTimer();
 
 switchMainScreen('dashboard');
 switchReportTab('rep-vios');
+
+  // ==========================================
+  // 🗂️ شاشة المشرف — المصروفات العامة
+  // ==========================================
+  let isManagerAuthenticated = false;
+  let managerGeneralExpenses = []; // { id, date, desc, qty, remainingQty, unitPrice, total, payMethod, cardId }
+  let managerAssignments = [];     // { id, date, expenseId, expenseDesc, carNum, qty, amount }
+  let managerVisaCards = [];       // { id, name, last4 }
+
+  function verifyManagerAccess() {
+      const pass = document.getElementById('mgr-auth-pass').value;
+      if(pass === (systemData.config.managerPass || '0000')) {
+          isManagerAuthenticated = true;
+          document.getElementById('mgr-auth-barrier').classList.add('hidden');
+          document.getElementById('mgr-real-content').classList.remove('hidden');
+          loadManagerData();
+          // تعيين تاريخ اليوم
+          const today = new Date().toISOString().split('T')[0];
+          document.getElementById('mgr-exp-date').value = today;
+      } else {
+          alert('❌ كلمة المرور غير صحيحة!');
+          document.getElementById('mgr-auth-pass').value = '';
+      }
+  }
+
+  function logoutManager() {
+      isManagerAuthenticated = false;
+      document.getElementById('mgr-auth-barrier').classList.remove('hidden');
+      document.getElementById('mgr-real-content').classList.add('hidden');
+      document.getElementById('mgr-auth-pass').value = '';
+  }
+
+  function loadManagerData() {
+      db.ref('managerExpenses').on('value', snap => {
+          managerGeneralExpenses = [];
+          const data = snap.val() || {};
+          Object.keys(data).forEach(k => { managerGeneralExpenses.push({ ...data[k], _key: k }); });
+          managerGeneralExpenses.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+          renderManagerExpenses();
+          renderAssignExpenseSelect();
+          renderStatementSummary('all');
+      });
+      db.ref('managerAssignments').on('value', snap => {
+          managerAssignments = [];
+          const data = snap.val() || {};
+          Object.keys(data).forEach(k => { managerAssignments.push({ ...data[k], _key: k }); });
+          managerAssignments.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+          renderAssignmentsList();
+      });
+      db.ref('managerVisaCards').on('value', snap => {
+          managerVisaCards = [];
+          const data = snap.val() || {};
+          Object.keys(data).forEach(k => { managerVisaCards.push({ ...data[k], _key: k }); });
+          renderVisaCards();
+          renderVisaCardSelects();
+      });
+  }
+
+  function switchManagerTab(tab) {
+      ['expenses','assign','statement','cards'].forEach(t => {
+          document.getElementById('mgr-zone-'+t).classList.add('hidden');
+          document.getElementById('mgr-tab-'+t).classList.remove('bg-blue-600','text-white');
+          document.getElementById('mgr-tab-'+t).classList.add('bg-white','text-gray-600');
+      });
+      document.getElementById('mgr-zone-'+tab).classList.remove('hidden');
+      document.getElementById('mgr-tab-'+tab).classList.add('bg-blue-600','text-white');
+      document.getElementById('mgr-tab-'+tab).classList.remove('bg-white','text-gray-600');
+      if(tab === 'statement') renderStatementSummary('all');
+  }
+
+  function toggleVisaCardSelect() {
+      const isVisa = document.getElementById('mgr-pay-visa').checked;
+      document.getElementById('mgr-visa-card-row').classList.toggle('hidden', !isVisa);
+  }
+
+  // حساب الإجمالي أثناء الكتابة
+  document.addEventListener('input', function(e) {
+      if(['mgr-exp-qty','mgr-exp-price'].includes(e.target.id)) {
+          const qty = parseFloat(document.getElementById('mgr-exp-qty').value) || 0;
+          const price = parseFloat(document.getElementById('mgr-exp-price').value) || 0;
+          document.getElementById('mgr-exp-total-preview').textContent = (qty * price).toLocaleString();
+      }
+  });
+
+  function addGeneralExpense() {
+      const desc = document.getElementById('mgr-exp-desc').value.trim();
+      const qty = parseInt(document.getElementById('mgr-exp-qty').value) || 0;
+      const price = parseFloat(document.getElementById('mgr-exp-price').value) || 0;
+      const date = document.getElementById('mgr-exp-date').value;
+      const payMethod = document.querySelector('input[name="mgr-pay-method"]:checked')?.value || 'cash';
+      const cardId = payMethod === 'visa' ? (document.getElementById('mgr-visa-select').value || '') : '';
+
+      if(!desc) return alert('يرجى إدخال بيان المصروف!');
+      if(qty < 1) return alert('يرجى إدخال كمية صحيحة!');
+      if(price <= 0) return alert('يرجى إدخال سعر الوحدة!');
+      if(payMethod === 'visa' && !cardId) return alert('يرجى اختيار بطاقة الفيزا!');
+      if(!date) return alert('يرجى تحديد التاريخ!');
+
+      const cardName = payMethod === 'visa' ? (managerVisaCards.find(c => c._key === cardId)?.name || '') : '';
+      const expense = {
+          id: 'EXP-' + Date.now(),
+          date, desc, qty, remainingQty: qty,
+          unitPrice: price, total: qty * price,
+          payMethod, cardId, cardName
+      };
+      db.ref('managerExpenses').push(expense);
+      // إعادة تعيين الفورم
+      document.getElementById('mgr-exp-desc').value = '';
+      document.getElementById('mgr-exp-qty').value = '';
+      document.getElementById('mgr-exp-price').value = '';
+      document.getElementById('mgr-exp-total-preview').textContent = '0';
+      alert('✅ تم حفظ المصروف بنجاح!');
+  }
+
+  function renderManagerExpenses() {
+      const tb = document.getElementById('mgr-expenses-tbody');
+      if(!tb) return;
+      if(!managerGeneralExpenses.length) {
+          tb.innerHTML = '<tr><td colspan="8" class="text-center text-gray-400 p-4">لا توجد مصروفات بعد.</td></tr>';
+          return;
+      }
+      tb.innerHTML = managerGeneralExpenses.map((e,i) => {
+          const bg = i%2===0 ? '' : 'bg-slate-50';
+          const payBadge = e.payMethod === 'cash'
+              ? '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">💵 نقدي</span>'
+              : `<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">💳 ${e.cardName||'فيزا'}</span>`;
+          const remainColor = e.remainingQty > 0 ? 'text-amber-600' : 'text-slate-400';
+          return `<tr class="${bg}">
+              <td class="p-2 font-mono">${e.date||''}</td>
+              <td class="p-2 font-bold">${e.desc}</td>
+              <td class="p-2 text-center font-mono">${e.qty}</td>
+              <td class="p-2 text-center font-mono font-black ${remainColor}">${e.remainingQty}</td>
+              <td class="p-2 text-center font-mono">${(e.unitPrice||0).toLocaleString()}</td>
+              <td class="p-2 text-center font-mono font-black text-blue-700">${(e.total||0).toLocaleString()}</td>
+              <td class="p-2 text-center">${payBadge}</td>
+              <td class="p-2 text-center"><button onclick="deleteGeneralExpense('${e._key}')" class="text-red-500 hover:text-red-700 text-xs font-bold">حذف</button></td>
+          </tr>`;
+      }).join('');
+  }
+
+  function deleteGeneralExpense(key) {
+      if(!confirm('هل تريد حذف هذا المصروف؟')) return;
+      db.ref('managerExpenses/' + key).remove();
+  }
+
+  function renderAssignExpenseSelect() {
+      const sel = document.getElementById('mgr-assign-expense-select');
+      if(!sel) return;
+      sel.innerHTML = '<option value="">-- اختر مصروف --</option>';
+      managerGeneralExpenses.filter(e => e.remainingQty > 0).forEach(e => {
+          sel.innerHTML += `<option value="${e._key}">${e.desc} (متبقي: ${e.remainingQty} — ${e.unitPrice} ج/وحدة)</option>`;
+      });
+  }
+
+  function updateAssignAvailable() {
+      const key = document.getElementById('mgr-assign-expense-select').value;
+      const exp = managerGeneralExpenses.find(e => e._key === key);
+      const lbl = document.getElementById('mgr-assign-available');
+      if(exp) {
+          lbl.textContent = exp.remainingQty + ' وحدة متاحة';
+          document.getElementById('mgr-assign-qty').max = exp.remainingQty;
+      } else {
+          lbl.textContent = '—';
+      }
+  }
+
+  function assignExpenseToCar() {
+      const key = document.getElementById('mgr-assign-expense-select').value;
+      const carNum = document.getElementById('mgr-assign-car').value.trim();
+      const qty = parseInt(document.getElementById('mgr-assign-qty').value) || 0;
+      const note = document.getElementById('mgr-assign-note').value.trim();
+      const exp = managerGeneralExpenses.find(e => e._key === key);
+
+      if(!exp) return alert('يرجى اختيار مصروف!');
+      if(!carNum) return alert('يرجى إدخال رقم السيارة!');
+      if(qty < 1 || qty > exp.remainingQty) return alert(`الكمية غير صحيحة! المتاح: ${exp.remainingQty}`);
+
+      const assignment = {
+          date: new Date().toISOString().split('T')[0],
+          expenseKey: key, expenseDesc: exp.desc,
+          carNum, qty, amount: qty * exp.unitPrice,
+          note: note || exp.desc
+      };
+
+      // خصم من الكمية المتبقية
+      db.ref('managerExpenses/' + key + '/remainingQty').set(exp.remainingQty - qty);
+      db.ref('managerAssignments').push(assignment);
+
+      // إعادة تعيين
+      document.getElementById('mgr-assign-car').value = '';
+      document.getElementById('mgr-assign-qty').value = '';
+      document.getElementById('mgr-assign-note').value = '';
+      alert(`✅ تم تحميل ${qty} وحدة على السيارة ${carNum} بمبلغ ${(qty * exp.unitPrice).toLocaleString()} جنيه`);
+  }
+
+  function renderAssignmentsList() {
+      const tb = document.getElementById('mgr-assignments-tbody');
+      if(!tb) return;
+      if(!managerAssignments.length) {
+          tb.innerHTML = '<tr><td colspan="5" class="text-center text-gray-400 p-4">لا توجد تحميلات بعد.</td></tr>';
+          return;
+      }
+      tb.innerHTML = managerAssignments.map((a,i) => {
+          const bg = i%2===0 ? '' : 'bg-slate-50';
+          return `<tr class="${bg}">
+              <td class="p-2 font-mono">${a.date}</td>
+              <td class="p-2 font-bold">${a.expenseDesc}</td>
+              <td class="p-2 text-center font-black text-blue-700">${a.carNum}</td>
+              <td class="p-2 text-center font-mono">${a.qty}</td>
+              <td class="p-2 text-center font-mono font-black text-emerald-600">${(a.amount||0).toLocaleString()} ج.م</td>
+          </tr>`;
+      }).join('');
+  }
+
+  function renderStatementSummary(filter) {
+      // تحديث أزرار الفلتر
+      ['all','cash','visa'].forEach(f => {
+          const btn = document.getElementById('stmt-filter-'+f);
+          if(btn) { btn.classList.toggle('bg-slate-800', f===filter); btn.classList.toggle('text-white', f===filter); btn.classList.toggle('bg-white', f!==filter); btn.classList.toggle('text-gray-600', f!==filter); }
+      });
+      let filtered = [...managerGeneralExpenses];
+      const cardFilter = document.getElementById('stmt-filter-card')?.value || '';
+      if(filter === 'cash') filtered = filtered.filter(e => e.payMethod === 'cash');
+      else if(filter === 'visa') filtered = filtered.filter(e => e.payMethod === 'visa');
+      else if(filter === 'card' && cardFilter) filtered = filtered.filter(e => e.cardId === cardFilter);
+
+      const cashTotal = managerGeneralExpenses.filter(e=>e.payMethod==='cash').reduce((s,e)=>s+(e.total||0),0);
+      const visaTotal = managerGeneralExpenses.filter(e=>e.payMethod==='visa').reduce((s,e)=>s+(e.total||0),0);
+      const allTotal = cashTotal + visaTotal;
+      const lCash = document.getElementById('stmt-total-cash'); if(lCash) lCash.textContent = cashTotal.toLocaleString()+' ج.م';
+      const lVisa = document.getElementById('stmt-total-visa'); if(lVisa) lVisa.textContent = visaTotal.toLocaleString()+' ج.م';
+      const lAll = document.getElementById('stmt-total-all'); if(lAll) lAll.textContent = allTotal.toLocaleString()+' ج.م';
+
+      const tb = document.getElementById('stmt-tbody');
+      if(!tb) return;
+      if(!filtered.length) { tb.innerHTML = '<tr><td colspan="5" class="text-center text-gray-400 p-4">لا توجد بيانات.</td></tr>'; return; }
+      tb.innerHTML = filtered.map((e,i) => {
+          const bg = i%2===0?'':'bg-slate-50';
+          const payBadge = e.payMethod === 'cash'
+              ? '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-[10px] font-bold">💵 نقدي</span>'
+              : `<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[10px] font-bold">💳 ${e.cardName||'فيزا'}</span>`;
+          return `<tr class="${bg}"><td class="p-2 font-mono">${e.date}</td><td class="p-2 font-bold">${e.desc}</td><td class="p-2 text-center">${e.qty}</td><td class="p-2 text-center font-black text-blue-700">${(e.total||0).toLocaleString()} ج.م</td><td class="p-2 text-center">${payBadge}</td></tr>`;
+      }).join('');
+  }
+
+  function filterStatement(filter) { renderStatementSummary(filter); }
+
+  function addVisaCard() {
+      const name = document.getElementById('mgr-card-name').value.trim();
+      const last4 = document.getElementById('mgr-card-last4').value.trim();
+      if(!name) return alert('يرجى إدخال اسم البطاقة!');
+      db.ref('managerVisaCards').push({ name, last4: last4 || '****' });
+      document.getElementById('mgr-card-name').value = '';
+      document.getElementById('mgr-card-last4').value = '';
+  }
+
+  function renderVisaCards() {
+      const tb = document.getElementById('mgr-cards-tbody');
+      if(!tb) return;
+      if(!managerVisaCards.length) { tb.innerHTML = '<tr><td colspan="4" class="text-center text-gray-400 p-4">لا توجد بطاقات مضافة.</td></tr>'; return; }
+      tb.innerHTML = managerVisaCards.map((c,i) => {
+          const spent = managerGeneralExpenses.filter(e=>e.cardId===c._key).reduce((s,e)=>s+(e.total||0),0);
+          const bg = i%2===0?'':'bg-slate-50';
+          return `<tr class="${bg}">
+              <td class="p-2 font-bold text-blue-800"><i class="fa-solid fa-credit-card text-blue-400 ml-1"></i> ${c.name}</td>
+              <td class="p-2 text-center font-mono text-gray-500">**** ${c.last4}</td>
+              <td class="p-2 text-center font-black text-blue-700">${spent.toLocaleString()} ج.م</td>
+              <td class="p-2 text-center"><button onclick="deleteVisaCard('${c._key}')" class="text-red-500 hover:text-red-700 text-xs font-bold">حذف</button></td>
+          </tr>`;
+      }).join('');
+  }
+
+  function renderVisaCardSelects() {
+      const sels = ['mgr-visa-select', 'stmt-filter-card'];
+      sels.forEach(selId => {
+          const sel = document.getElementById(selId);
+          if(!sel) return;
+          const isFilter = selId === 'stmt-filter-card';
+          sel.innerHTML = isFilter ? '<option value="">-- فيزا محددة --</option>' : '<option value="">-- اختر البطاقة --</option>';
+          managerVisaCards.forEach(c => {
+              sel.innerHTML += `<option value="${c._key}">${c.name} (**** ${c.last4})</option>`;
+          });
+      });
+  }
+
+  function deleteVisaCard(key) {
+      if(!confirm('هل تريد حذف هذه البطاقة؟')) return;
+      db.ref('managerVisaCards/' + key).remove();
+  }
+  
 </script>
 <script src="https://replit-cdn.com/replit-pill/replit-pill.global.js" data-repl-id="1c77549f-9ef9-4de3-bbd8-46685427b59a"></script></body>
 </html>
