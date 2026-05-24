@@ -883,7 +883,7 @@
 </main>
 
 <!-- ======== منطقة الطباعة ======== -->
-  <div id="print-invoice-zone" class="hidden no-print-zone" style="width:148mm;min-height:210mm;background:white;direction:rtl;font-family:Arial,sans-serif;box-sizing:border-box;position:relative;overflow:hidden;">
+  <div id="print-invoice-zone" class="hidden" style="width:148mm;min-height:210mm;background:white;direction:rtl;font-family:Arial,sans-serif;box-sizing:border-box;position:relative;overflow:hidden;">
 
     <!-- شريط علوي ذهبي -->
     <div style="background:linear-gradient(135deg,#7a5c1e,#c9a84c,#7a5c1e);height:6mm;width:100%;"></div>
@@ -1102,6 +1102,14 @@ function syncAllDataStateFromServer(data) {
 // 🧭 التنقل
 // ==========================================
 function switchMainScreen(screenId) {
+    // ✅ إغلاق شاشة الطباعة فوراً إذا كانت مفتوحة
+    const overlay = document.getElementById('print-overlay-wrapper');
+    if(overlay && overlay.style.display !== 'none' && overlay.style.display !== '') {
+        overlay.style.display = 'none';
+        const zone = document.getElementById('print-invoice-zone');
+        if(zone) { zone.classList.add('hidden'); zone.style.display='none'; document.body.appendChild(zone); }
+        activeInvoiceData = null;
+    }
     // ✅ تسجيل خروج تلقائي من الشاشة المحمية عند مغادرتها
     const currentVisible = document.querySelector('.main-screen:not(.hidden)');
     if (currentVisible) {
@@ -1122,12 +1130,16 @@ function switchMainScreen(screenId) {
             if (leaving === 'finance' && isFinanceAuthenticated) {
                 logoutFinanceManager();
             }
+            if (leaving === 'manager' && isManagerAuthenticated) {
+                logoutManager();
+            }
         }
     }
     document.querySelectorAll('.main-screen').forEach(s=>s.classList.add('hidden'));
     document.querySelectorAll('header button').forEach(b=>b.classList.remove('tab-active'));
     document.getElementById('screen-'+screenId).classList.remove('hidden');
-    document.getElementById('nav-'+screenId).classList.add('tab-active');
+    const navBtn = document.getElementById('nav-'+screenId);
+    if(navBtn) navBtn.classList.add('tab-active');
 }
 
 // ==========================================
@@ -1678,9 +1690,18 @@ function triggerPaperInvoicePrintWorkflow(totalSum, supervisorName) {
         zone.style.fontSize='';
     }
 
-    document.querySelectorAll('.main-screen').forEach(s=>s.classList.add('hidden'));
+    // عرض الطباعة في overlay يغطي الشاشة كاملاً
+    let overlay = document.getElementById('print-overlay-wrapper');
+    if(!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'print-overlay-wrapper';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.75);z-index:9999;display:flex;justify-content:center;align-items:flex-start;overflow-y:auto;padding:16px 0;';
+        document.body.appendChild(overlay);
+    }
+    overlay.appendChild(zone);
     zone.classList.remove('hidden');
-    zone.style.display='block';
+    zone.style.display = 'block';
+    overlay.style.display = 'flex';
     window.onafterprint = function() {
         window.onafterprint = null;
         closePrintInvoiceZone();
@@ -1751,14 +1772,24 @@ function renderSupCustodyTracking() {
 }
 
 function closePrintInvoiceZone() {
-    document.getElementById('print-invoice-zone').classList.add('hidden');
-    let carNum=document.getElementById('prt-inv-car').innerText;
-    activeInvoiceData=null;
-    if(lastPrintedScreen==='finance' && isFinanceAuthenticated) {
-        switchMainScreen('finance');
-        let nd=prompt(`تحديث تاريخ انتهاء الترخيص الجديد للسيارة ${carNum}؟ (اتركه فارغاً للتخطي) بصيغة: YYYY-MM-DD`);
-        if(nd&&nd.trim()) { let ck=Object.keys(systemData.cars).find(k=>systemData.cars[k].id===carNum); if(ck){ db.ref('cars/'+ck+'/expiry').set(nd.trim()); alert("✅ تم تحديث تاريخ الترخيص."); } }
-    } else { switchMainScreen('reports'); }
+    const zone = document.getElementById('print-invoice-zone');
+    if(!zone) return;
+    // إخفاء الـ overlay
+    const overlay = document.getElementById('print-overlay-wrapper');
+    if(overlay) {
+        overlay.style.display = 'none';
+        document.body.appendChild(zone); // نُعيد الـ zone لـ body
+    }
+    zone.classList.add('hidden');
+    zone.style.display = 'none';
+    activeInvoiceData = null;
+    // العودة للشاشة السابقة
+    const target = lastPrintedScreen || 'reports';
+    if(target === 'finance' && isFinanceAuthenticated) switchMainScreen('finance');
+    else if(target === 'traffic' && isTrafficAuthenticated) switchMainScreen('traffic');
+    else if(target === 'supervisor' && currentSelectedSupervisorKey) switchMainScreen('supervisor');
+    else if(target === 'manager' && isManagerAuthenticated) switchMainScreen('manager');
+    else switchMainScreen('reports');
 }
 
 // ==========================================
