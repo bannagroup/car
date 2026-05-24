@@ -492,7 +492,7 @@
     </div>
 </div>
 
-<!-- ======== شاشة المشرف (المصروفات العامة) ======== -->
+<!-- ======== شاشة المصروفات العامة (محسنة) ======== -->
 <div id="screen-manager" class="main-screen hidden space-y-6">
 
   <!-- حاجز المصادقة -->
@@ -513,137 +513,309 @@
         <i class="fa-solid fa-wallet text-indigo-600 text-lg"></i>
         <div>
           <div class="text-sm font-black text-slate-900">شاشة المصروفات العامة</div>
-          <div class="text-[10px] text-gray-400">إدارة المصروفات النقدية والفيزا وتحميلها على السيارات</div>
+          <div class="text-[10px] text-gray-400">إدارة العهد والمصروفات النقدية والفيزا</div>
         </div>
       </div>
       <button onclick="logoutManager()" class="bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-200">خروج</button>
     </div>
 
-    <!-- كروت العهدة الرئيسية -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <div class="bg-violet-50 border border-violet-200 rounded-xl p-3 text-center">
-        <div class="text-[10px] text-violet-500 font-bold mb-1">💼 إجمالي العهدة</div>
-        <div class="text-lg font-black text-violet-800 font-mono" id="mgr-custody-total">0 ج</div>
+    <!-- كروت العهدة الرئيسية المحسنة -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div class="bg-gradient-to-br from-violet-600 to-violet-800 text-white rounded-xl p-4 text-center shadow-lg">
+        <div class="text-[10px] text-violet-200 font-bold mb-1">💼 العهدة الرئيسية</div>
+        <div class="text-2xl font-black font-mono" id="mgr-main-custody">0 ج</div>
+        <div class="text-[9px] text-violet-300 mt-1" id="mgr-last-add-date">آخر إضافة: —</div>
       </div>
-      <div class="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
-        <div class="text-[10px] text-green-600 font-bold mb-1">💵 مصروف نقدي</div>
-        <div class="text-lg font-black text-green-700 font-mono" id="mgr-custody-cash">0 ج</div>
+      <div class="bg-gradient-to-br from-green-600 to-green-800 text-white rounded-xl p-4 text-center shadow-lg">
+        <div class="text-[10px] text-green-200 font-bold mb-1">💵 رصيد النقدي</div>
+        <div class="text-2xl font-black font-mono" id="mgr-cash-balance">0 ج</div>
       </div>
-      <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
-        <div class="text-[10px] text-blue-600 font-bold mb-1">💳 مصروف فيزا</div>
-        <div class="text-lg font-black text-blue-700 font-mono" id="mgr-custody-visa">0 ج</div>
+      <div class="bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-xl p-4 text-center shadow-lg">
+        <div class="text-[10px] text-blue-200 font-bold mb-1">💳 رصيد الفيزا</div>
+        <div class="text-2xl font-black font-mono" id="mgr-visa-balance">0 ج</div>
       </div>
-      <div class="bg-emerald-50 border border-emerald-300 rounded-xl p-3 text-center">
-        <div class="text-[10px] text-emerald-600 font-bold mb-1">✅ المتبقي (نقدي)</div>
-        <div class="text-lg font-black text-emerald-800 font-mono" id="mgr-custody-remaining">0 ج</div>
+      <div class="bg-gradient-to-br from-amber-500 to-amber-700 text-white rounded-xl p-4 text-center shadow-lg">
+        <div class="text-[10px] text-amber-200 font-bold mb-1">📤 إجمالي المصروفات</div>
+        <div class="text-2xl font-black font-mono" id="mgr-total-expenses">0 ج</div>
+      </div>
+      <div class="bg-gradient-to-br from-emerald-600 to-emerald-800 text-white rounded-xl p-4 text-center shadow-lg">
+        <div class="text-[10px] text-emerald-200 font-bold mb-1">✅ المتبقي</div>
+        <div class="text-2xl font-black font-mono" id="mgr-remaining-balance">0 ج</div>
       </div>
     </div>
 
-    <!-- تبويبات الشاشة -->
-    <div class="flex gap-2 flex-wrap">
-      <button onclick="switchManagerTab('expenses')" id="mgr-tab-expenses" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white border border-indigo-700">
-        <i class="fa-solid fa-receipt ml-1"></i> إضافة مصروف عام
+    <!-- تبويبات الشاشة المحسنة -->
+    <div class="flex gap-2 flex-wrap bg-white p-2 rounded-xl shadow border">
+      <button onclick="switchManagerTab('custody')" id="mgr-tab-custody" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white border border-indigo-700">
+        <i class="fa-solid fa-plus-circle ml-1"></i> إضافة عهد
       </button>
-      <button onclick="switchManagerTab('assign')" id="mgr-tab-assign" class="px-4 py-2 rounded-xl text-xs font-bold bg-white text-gray-600 border">
-        <i class="fa-solid fa-car ml-1"></i> تحميل على سيارة
+      <button onclick="switchManagerTab('distribute')" id="mgr-tab-distribute" class="px-4 py-2 rounded-xl text-xs font-bold bg-white text-gray-600 border">
+        <i class="fa-solid fa-share-nodes ml-1"></i> توزيع العهد
+      </button>
+      <button onclick="switchManagerTab('expenses')" id="mgr-tab-expenses" class="px-4 py-2 rounded-xl text-xs font-bold bg-white text-gray-600 border">
+        <i class="fa-solid fa-receipt ml-1"></i> مصروفات
       </button>
       <button onclick="switchManagerTab('statement')" id="mgr-tab-statement" class="px-4 py-2 rounded-xl text-xs font-bold bg-white text-gray-600 border">
-        <i class="fa-solid fa-wallet ml-1"></i> كشف الحساب
+        <i class="fa-solid fa-file-invoice ml-1"></i> كشف حساب
       </button>
       <button onclick="switchManagerTab('cards')" id="mgr-tab-cards" class="px-4 py-2 rounded-xl text-xs font-bold bg-white text-gray-600 border">
-        <i class="fa-solid fa-credit-card ml-1"></i> بطاقات الفيزا
+        <i class="fa-solid fa-credit-card ml-1"></i> الفيزا
       </button>
     </div>
 
-    <!-- منطقة: إضافة مصروف عام -->
-    <div id="mgr-zone-expenses" class="space-y-4 bg-white p-5 rounded-xl shadow border">
-      <h4 class="text-xs font-black text-slate-900 border-b pb-2"><i class="fa-solid fa-plus-circle text-indigo-600 ml-1"></i> إضافة مصروف عام جديد</h4>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-        <div><label class="block text-[10px] text-gray-500 mb-1">بيان المصروف</label><input type="text" id="mgr-exp-desc" placeholder="وصف المصروف..." class="w-full p-2 border rounded text-center font-bold"></div>
-        <div><label class="block text-[10px] text-gray-500 mb-1">التاريخ</label><input type="date" id="mgr-exp-date" class="w-full p-2 border rounded text-center font-bold"></div>
-        <div><label class="block text-[10px] text-gray-500 mb-1">الكمية</label><input type="number" id="mgr-exp-qty" placeholder="1" min="1" class="w-full p-2 border rounded text-center font-bold text-blue-700"></div>
-        <div><label class="block text-[10px] text-gray-500 mb-1">سعر الوحدة (جنيه)</label><input type="number" id="mgr-exp-price" placeholder="0.00" class="w-full p-2 border rounded text-center font-bold text-emerald-600"></div>
-      </div>
-      <div class="bg-slate-50 border rounded-lg p-3 text-xs space-y-2">
-        <div class="font-bold text-slate-700">طريقة الدفع:</div>
-        <div class="flex gap-4">
-          <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="mgr-pay-method" id="mgr-pay-cash" value="cash" checked onchange="toggleVisaCardSelect()"> <span class="font-bold">💵 نقدي</span></label>
-          <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="mgr-pay-method" id="mgr-pay-visa" value="visa" onchange="toggleVisaCardSelect()"> <span class="font-bold">💳 فيزا</span></label>
-        </div>
-        <div id="mgr-visa-card-row" class="hidden">
-          <label class="block text-[10px] text-gray-500 mb-1">اختر البطاقة</label>
-          <select id="mgr-visa-select" class="w-full p-2 border rounded text-center text-xs font-bold bg-white"></select>
-        </div>
-      </div>
-      <div class="flex justify-between items-center bg-indigo-50 border border-indigo-200 rounded-lg p-3">
-        <span class="text-xs font-bold text-indigo-700">الإجمالي:</span>
-        <span class="text-xl font-black text-indigo-800 font-mono" id="mgr-exp-total-preview">0</span>
-        <span class="text-xs font-bold text-indigo-700">جنيه</span>
-      </div>
-      <button onclick="addGeneralExpense()" class="w-full bg-indigo-600 text-white font-black text-xs py-2.5 rounded-xl shadow hover:bg-indigo-700">💾 حفظ المصروف</button>
-      <div class="overflow-x-auto mt-2">
-        <table class="w-full text-xs text-right border">
-          <thead class="bg-slate-100 font-bold"><tr><th class="p-2">التاريخ</th><th class="p-2">البيان</th><th class="p-2 text-center">الكمية</th><th class="p-2 text-center">متبقي</th><th class="p-2 text-center">سعر الوحدة</th><th class="p-2 text-center">الإجمالي</th><th class="p-2 text-center">طريقة الدفع</th><th class="p-2 text-center">حذف</th></tr></thead>
-          <tbody id="mgr-expenses-tbody" class="divide-y"><tr><td colspan="8" class="text-center text-gray-400 p-4">لا توجد مصروفات بعد.</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- منطقة: تحميل على سيارة -->
-    <div id="mgr-zone-assign" class="hidden space-y-4 bg-white p-5 rounded-xl shadow border">
-      <h4 class="text-xs font-black text-slate-900 border-b pb-2"><i class="fa-solid fa-car text-blue-600 ml-1"></i> تحميل مصروف على سيارة</h4>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+    <!-- منطقة: إضافة عهد رئيسية -->
+    <div id="mgr-zone-custody" class="space-y-4 bg-white p-5 rounded-xl shadow border">
+      <h4 class="text-xs font-black text-slate-900 border-b pb-2 flex justify-between items-center">
+        <span><i class="fa-solid fa-plus-circle text-indigo-600 ml-1"></i> إضافة عهد نقدية جديدة</span>
+        <span class="text-[10px] text-gray-400">كل إضافة تُسجل بتاريخها</span>
+      </h4>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
         <div>
-          <label class="block text-[10px] text-gray-500 mb-1">اختر المصروف</label>
-          <select id="mgr-assign-expense-select" onchange="updateAssignAvailable()" class="w-full p-2 border rounded text-center font-bold bg-white"><option value="">-- اختر مصروف --</option></select>
-        </div>
-        <div>
-          <label class="block text-[10px] text-gray-500 mb-1">رقم السيارة</label>
-          <input type="text" id="mgr-assign-car" placeholder="رقم السيارة" class="w-full p-2 border rounded text-center font-bold text-blue-900">
-        </div>
-        <div>
-          <label class="block text-[10px] text-gray-500 mb-1">الكمية المحملة</label>
-          <input type="number" id="mgr-assign-qty" placeholder="1" min="1" class="w-full p-2 border rounded text-center font-bold text-emerald-600">
-          <div class="text-[10px] text-gray-400 mt-0.5" id="mgr-assign-avail-label">متاح: —</div>
+          <label class="block text-[10px] text-gray-500 mb-1">المبلغ</label>
+          <input type="number" id="mgr-custody-amount" placeholder="0.00" class="w-full p-2.5 border rounded text-center font-bold text-lg text-indigo-700">
         </div>
         <div>
           <label class="block text-[10px] text-gray-500 mb-1">التاريخ</label>
-          <input type="date" id="mgr-assign-date" class="w-full p-2 border rounded text-center font-bold">
+          <input type="date" id="mgr-custody-date" class="w-full p-2.5 border rounded text-center font-bold">
+        </div>
+        <div>
+          <label class="block text-[10px] text-gray-500 mb-1">البيان</label>
+          <input type="text" id="mgr-custody-desc" placeholder="مثال: عهدة شهرية" class="w-full p-2.5 border rounded text-center font-bold">
+        </div>
+        <div class="flex items-end">
+          <button onclick="addMainCustody()" class="w-full bg-indigo-600 text-white font-black py-3 rounded-xl hover:bg-indigo-700 text-xs">
+            <i class="fa-solid fa-plus ml-1"></i> إضافة العهد
+          </button>
         </div>
       </div>
-      <button onclick="assignExpenseToCar()" class="w-full bg-blue-600 text-white font-black text-xs py-2.5 rounded-xl shadow hover:bg-blue-700">تحميل على السيارة ➕</button>
-      <div class="overflow-x-auto mt-2">
-        <table class="w-full text-xs text-right border">
-          <thead class="bg-slate-100 font-bold"><tr><th class="p-2">التاريخ</th><th class="p-2">المصروف</th><th class="p-2 text-center">السيارة</th><th class="p-2 text-center">الكمية</th><th class="p-2 text-center">المبلغ</th><th class="p-2 text-center">حذف</th></tr></thead>
-          <tbody id="mgr-assignments-tbody" class="divide-y"><tr><td colspan="6" class="text-center text-gray-400 p-4">لا توجد تحميلات بعد.</td></tr></tbody>
+      <!-- جدول عهد إضافية -->
+      <div class="overflow-x-auto mt-3">
+        <table class="w-full text-xs text-right border rounded">
+          <thead class="bg-indigo-50 font-bold">
+            <tr>
+              <th class="p-2">التاريخ</th>
+              <th class="p-2">المبلغ</th>
+              <th class="p-2">البيان</th>
+              <th class="p-2 text-center">تعديل</th>
+              <th class="p-2 text-center">حذف</th>
+            </tr>
+          </thead>
+          <tbody id="mgr-custody-history-tbody">
+            <tr><td colspan="5" class="text-center text-gray-400 p-4">لا توجد عهد إضافية بعد.</td></tr>
+          </tbody>
         </table>
       </div>
     </div>
 
-    <!-- منطقة: كشف الحساب -->
+    <!-- منطقة: توزيع العهد -->
+    <div id="mgr-zone-distribute" class="hidden space-y-4 bg-white p-5 rounded-xl shadow border">
+      <h4 class="text-xs font-black text-slate-900 border-b pb-2 flex justify-between items-center">
+        <span><i class="fa-solid fa-share-nodes text-blue-600 ml-1"></i> توزيع العهد على الحسابات</span>
+        <span class="text-[10px] text-gray-400">نقل من العهدة الرئيسية للحسابات</span>
+      </h4>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+        <div>
+          <label class="block text-[10px] text-gray-500 mb-1">المبلغ</label>
+          <input type="number" id="mgr-dist-amount" placeholder="0.00" class="w-full p-2.5 border rounded text-center font-bold text-lg text-blue-700">
+        </div>
+        <div>
+          <label class="block text-[10px] text-gray-500 mb-1">التاريخ</label>
+          <input type="date" id="mgr-dist-date" class="w-full p-2.5 border rounded text-center font-bold">
+        </div>
+        <div>
+          <label class="block text-[10px] text-gray-500 mb-1">البيان</label>
+          <input type="text" id="mgr-dist-desc" placeholder="مثال: تعبئة صندوق" class="w-full p-2.5 border rounded text-center font-bold">
+        </div>
+        <div>
+          <label class="block text-[10px] text-gray-500 mb-1">الحساب المستهدف</label>
+          <select id="mgr-dist-target" class="w-full p-2.5 border rounded text-center font-bold bg-white">
+            <option value="cash">💵 نقدي</option>
+            <option value="visa">💳 فيزا</option>
+          </select>
+        </div>
+      </div>
+      <div id="mgr-dist-visa-row" class="hidden mt-2 p-3 bg-blue-50 rounded-lg">
+        <label class="block text-[10px] text-gray-500 mb-1">اختر بطاقة الفيزا</label>
+        <select id="mgr-dist-visa-select" class="w-full p-2 border rounded text-center text-xs font-bold bg-white"></select>
+      </div>
+      <button onclick="distributeCustody()" class="w-full bg-blue-600 text-white font-black py-3 rounded-xl hover:bg-blue-700 text-xs">
+        <i class="fa-solid fa-share-nodes ml-1"></i> توزيع على الحساب
+      </button>
+      <!-- جدول التوزيعات -->
+      <div class="overflow-x-auto mt-3">
+        <table class="w-full text-xs text-right border rounded">
+          <thead class="bg-blue-50 font-bold">
+            <tr>
+              <th class="p-2">التاريخ</th>
+              <th class="p-2">المبلغ</th>
+              <th class="p-2">الحساب</th>
+              <th class="p-2">البيان</th>
+              <th class="p-2 text-center">حذف</th>
+            </tr>
+          </thead>
+          <tbody id="mgr-dist-history-tbody">
+            <tr><td colspan="5" class="text-center text-gray-400 p-4">لا توجد توزيعات بعد.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- منطقة: مصروفات (نقدي + فيزا) -->
+    <div id="mgr-zone-expenses" class="hidden space-y-4 bg-white p-5 rounded-xl shadow border">
+      <h4 class="text-xs font-black text-slate-900 border-b pb-2 flex justify-between items-center">
+        <span><i class="fa-solid fa-receipt text-rose-600 ml-1"></i> تسجيل مصروف</span>
+        <span class="text-[10px] text-gray-400">الخصم من النقدي أو الفيزا</span>
+      </h4>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+        <div>
+          <label class="block text-[10px] text-gray-500 mb-1">بيان المصروف</label>
+          <input type="text" id="mgr-exp-desc" placeholder="وصف المصروف..." class="w-full p-2.5 border rounded text-center font-bold">
+        </div>
+        <div>
+          <label class="block text-[10px] text-gray-500 mb-1">المبلغ</label>
+          <input type="number" id="mgr-exp-amount" placeholder="0.00" class="w-full p-2.5 border rounded text-center font-bold text-lg text-rose-700">
+        </div>
+        <div>
+          <label class="block text-[10px] text-gray-500 mb-1">التاريخ</label>
+          <input type="date" id="mgr-exp-date" class="w-full p-2.5 border rounded text-center font-bold">
+        </div>
+        <div>
+          <label class="block text-[10px] text-gray-500 mb-1">نوع الخصم</label>
+          <select id="mgr-exp-type" class="w-full p-2.5 border rounded text-center font-bold bg-white">
+            <option value="cash">💵 نقدي</option>
+            <option value="visa">💳 فيزا</option>
+          </select>
+        </div>
+      </div>
+      <div id="mgr-exp-visa-card-row" class="hidden mt-2 p-3 bg-blue-50 rounded-lg">
+        <label class="block text-[10px] text-gray-500 mb-1">اختر بطاقة الفيزا</label>
+        <select id="mgr-exp-visa-select" class="w-full p-2 border rounded text-center text-xs font-bold bg-white"></select>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="addExpenseWithDeduction()" class="flex-1 bg-rose-600 text-white font-black py-3 rounded-xl hover:bg-rose-700 text-xs">
+          <i class="fa-solid fa-minus ml-1"></i> خصم من الحساب
+        </button>
+        <button onclick="showCarExpenseModal()" class="flex-1 bg-blue-600 text-white font-black py-3 rounded-xl hover:bg-blue-700 text-xs">
+          <i class="fa-solid fa-car ml-1"></i> ربط بسيارة
+        </button>
+      </div>
+      <!-- جدول المصروفات -->
+      <div class="overflow-x-auto mt-3">
+        <table class="w-full text-xs text-right border rounded">
+          <thead class="bg-rose-50 font-bold">
+            <tr>
+              <th class="p-2">التاريخ</th>
+              <th class="p-2">البيان</th>
+              <th class="p-2">المبلغ</th>
+              <th class="p-2">الحساب</th>
+              <th class="p-2">السيارة</th>
+              <th class="p-2 text-center">تعديل</th>
+              <th class="p-2 text-center">إلغاء</th>
+            </tr>
+          </thead>
+          <tbody id="mgr-expenses-tbody">
+            <tr><td colspan="7" class="text-center text-gray-400 p-4">لا توجد مصروفات بعد.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- منطقة: كشف حساب مفصل -->
     <div id="mgr-zone-statement" class="hidden space-y-4 bg-white p-5 rounded-xl shadow border">
-      <h4 class="text-xs font-black text-slate-900 border-b pb-2"><i class="fa-solid fa-file-invoice text-violet-600 ml-1"></i> كشف حساب المصروفات العامة</h4>
-      <div class="flex gap-2 flex-wrap mb-2">
+      <h4 class="text-xs font-black text-slate-900 border-b pb-2 flex justify-between items-center">
+        <span><i class="fa-solid fa-file-invoice text-violet-600 ml-1"></i> كشف حساب مفصل</span>
+        <span class="text-[10px] text-gray-400">سجل كامل بجميع الحركات والتواريخ</span>
+      </h4>
+      <div class="flex gap-2 flex-wrap mb-3">
+        <div class="flex gap-1 items-center bg-slate-100 p-2 rounded-lg">
+          <label class="text-[10px] font-bold text-gray-600">من:</label>
+          <input type="date" id="stmt-from-date" class="p-1.5 border rounded text-xs font-bold">
+        </div>
+        <div class="flex gap-1 items-center bg-slate-100 p-2 rounded-lg">
+          <label class="text-[10px] font-bold text-gray-600">إلى:</label>
+          <input type="date" id="stmt-to-date" class="p-1.5 border rounded text-xs font-bold">
+        </div>
+        <button onclick="filterStatementByDate()" class="px-4 py-2 bg-violet-600 text-white rounded-lg text-xs font-bold hover:bg-violet-700">
+          <i class="fa-solid fa-filter ml-1"></i> بحث
+        </button>
+      </div>
+      <div class="flex gap-2 flex-wrap mb-3">
         <button onclick="renderStatementSummary('all')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-violet-600 text-white">الكل</button>
-        <button onclick="renderStatementSummary('cash')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-green-600 text-white">نقدي فقط</button>
-        <button onclick="renderStatementSummary('visa')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white">فيزا فقط</button>
+        <button onclick="renderStatementSummary('cash')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-green-600 text-white">نقدي</button>
+        <button onclick="renderStatementSummary('visa')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white">فيزا</button>
+        <button onclick="renderStatementSummary('custody')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white">العهد</button>
+      </div>
+      <div class="grid grid-cols-3 gap-2 mb-3">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-center">
+          <div class="text-[10px] text-emerald-600 font-bold">إجمالي الوارد</div>
+          <div class="text-lg font-black text-emerald-700 font-mono" id="stmt-total-in">0 ج</div>
+        </div>
+        <div class="bg-rose-50 border border-rose-200 rounded-lg p-3 text-center">
+          <div class="text-[10px] text-rose-600 font-bold">إجمالي المصروفات</div>
+          <div class="text-lg font-black text-rose-700 font-mono" id="stmt-total-out">0 ج</div>
+        </div>
+        <div class="bg-violet-50 border border-violet-200 rounded-lg p-3 text-center">
+          <div class="text-[10px] text-violet-600 font-bold">المتبقي</div>
+          <div class="text-lg font-black text-violet-700 font-mono" id="stmt-balance">0 ج</div>
+        </div>
       </div>
       <div id="mgr-statement-content" class="text-xs text-gray-400 text-center p-4">جاري التحميل...</div>
     </div>
 
     <!-- منطقة: بطاقات الفيزا -->
     <div id="mgr-zone-cards" class="hidden space-y-4 bg-white p-5 rounded-xl shadow border">
-      <h4 class="text-xs font-black text-slate-900 border-b pb-2"><i class="fa-solid fa-credit-card text-blue-600 ml-1"></i> إدارة بطاقات الفيزا</h4>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
-        <div><label class="block text-[10px] text-gray-500 mb-1">اسم البطاقة</label><input type="text" id="mgr-card-name" placeholder="مثال: فيزا مصرف أبوظبي" class="w-full p-2 border rounded text-center font-bold"></div>
-        <div><label class="block text-[10px] text-gray-500 mb-1">آخر 4 أرقام</label><input type="text" id="mgr-card-last4" placeholder="1234" maxlength="4" class="w-full p-2 border rounded text-center font-mono font-bold"></div>
-        <div class="flex items-end"><button onclick="addVisaCard()" class="w-full bg-blue-600 text-white font-black py-2 rounded-xl hover:bg-blue-700">إضافة البطاقة</button></div>
+      <h4 class="text-xs font-black text-slate-900 border-b pb-2">
+        <i class="fa-solid fa-credit-card text-blue-600 ml-1"></i> إدارة بطاقات الفيزا
+      </h4>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-2 text-xs">
+        <div><label class="block text-[10px] text-gray-500 mb-1">اسم البطاقة</label><input type="text" id="mgr-card-name" placeholder="مثال: مصرف أبوظبي" class="w-full p-2.5 border rounded text-center font-bold"></div>
+        <div><label class="block text-[10px] text-gray-500 mb-1">آخر 4 أرقام</label><input type="text" id="mgr-card-last4" placeholder="1234" maxlength="4" class="w-full p-2.5 border rounded text-center font-mono font-bold"></div>
+        <div><label class="block text-[10px] text-gray-500 mb-1">الرصيد الحالي</label><input type="number" id="mgr-card-balance" placeholder="0.00" class="w-full p-2.5 border rounded text-center font-bold text-blue-700"></div>
+        <div class="flex items-end"><button onclick="addVisaCard()" class="w-full bg-blue-600 text-white font-black py-2.5 rounded-xl hover:bg-blue-700">إضافة البطاقة</button></div>
       </div>
       <div id="mgr-visa-cards-list" class="space-y-2 mt-2">
         <p class="text-center text-gray-400 text-xs p-3">لا توجد بطاقات بعد.</p>
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- Modal تعديل العهد -->
+<div id="edit-custody-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center">
+  <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+    <h3 class="text-sm font-black text-slate-900 mb-4"><i class="fa-solid fa-edit text-indigo-600 ml-1"></i> تعديل العهد</h3>
+    <input type="hidden" id="edit-custody-key">
+    <div class="space-y-3 text-xs">
+      <div><label class="block text-gray-500 mb-1">المبلغ الجديد</label><input type="number" id="edit-custody-amount" class="w-full p-2.5 border rounded font-bold text-center"></div>
+      <div><label class="block text-gray-500 mb-1">البيان</label><input type="text" id="edit-custody-desc" class="w-full p-2.5 border rounded font-bold text-center"></div>
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button onclick="saveCustodyEdit()" class="flex-1 bg-indigo-600 text-white font-bold py-2 rounded-xl">حفظ التعديلات</button>
+      <button onclick="closeCustodyModal()" class="flex-1 bg-gray-200 text-gray-700 font-bold py-2 rounded-xl">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal تعديل المصروف -->
+<div id="edit-expense-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center">
+  <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+    <h3 class="text-sm font-black text-slate-900 mb-4"><i class="fa-solid fa-edit text-rose-600 ml-1"></i> تعديل المصروف</h3>
+    <input type="hidden" id="edit-expense-key">
+    <div class="space-y-3 text-xs">
+      <div><label class="block text-gray-500 mb-1">المبلغ الجديد</label><input type="number" id="edit-expense-amount" class="w-full p-2.5 border rounded font-bold text-center text-rose-700"></div>
+      <div><label class="block text-gray-500 mb-1">البيان</label><input type="text" id="edit-expense-desc" class="w-full p-2.5 border rounded font-bold text-center"></div>
+      <div><label class="block text-gray-500 mb-1">الحساب</label>
+        <select id="edit-expense-type" class="w-full p-2.5 border rounded font-bold text-center bg-white">
+          <option value="cash">💵 نقدي</option>
+          <option value="visa">💳 فيزا</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button onclick="saveExpenseEdit()" class="flex-1 bg-rose-600 text-white font-bold py-2 rounded-xl">حفظ التعديلات</button>
+      <button onclick="closeExpenseModal()" class="flex-1 bg-gray-200 text-gray-700 font-bold py-2 rounded-xl">إلغاء</button>
+    </div>
   </div>
 </div>
 
@@ -2014,213 +2186,443 @@ function logoutManager() {
     document.getElementById('mgr-auth-pass').value = '';
 }
 
+// ==========================================
+// 💰 إدارة المصروفات العامة (محسنة)
+// ==========================================
+
+// متغيرات عامة
+let mainCustodyEntries = [];     // سجلات العهد الرئيسية
+let distributionEntries = [];     // سجلات التوزيع
+let expenseEntries = [];          // سجلات المصروفات
+let managerVisaCards = [];        // بطاقات الفيزا
+
+// تحديث كروت العهدة
+function updateManagerBalanceCards() {
+    const mainTotal = mainCustodyEntries.reduce((a,e) => a + parseFloat(e.amount || 0), 0);
+    const distCash = distributionEntries.filter(e => e.target === 'cash').reduce((a,e) => a + parseFloat(e.amount || 0), 0);
+    const distVisa = distributionEntries.filter(e => e.target === 'visa').reduce((a,e) => a + parseFloat(e.amount || 0), 0);
+    const expCash = expenseEntries.filter(e => e.type === 'cash').reduce((a,e) => a + parseFloat(e.amount || 0), 0);
+    const expVisa = expenseEntries.filter(e => e.type === 'visa').reduce((a,e) => a + parseFloat(e.amount || 0), 0);
+
+    const cashBalance = distCash - expCash;
+    const visaBalance = distVisa - expVisa;
+    const totalExpenses = expCash + expVisa;
+    const remaining = mainTotal - totalExpenses;
+
+    document.getElementById('mgr-main-custody').innerText = mainTotal.toLocaleString() + ' ج';
+    document.getElementById('mgr-cash-balance').innerText = cashBalance.toLocaleString() + ' ج';
+    document.getElementById('mgr-visa-balance').innerText = visaBalance.toLocaleString() + ' ج';
+    document.getElementById('mgr-total-expenses').innerText = totalExpenses.toLocaleString() + ' ج';
+    document.getElementById('mgr-remaining-balance').innerText = remaining.toLocaleString() + ' ج';
+
+    // آخر إضافة عهد
+    if(mainCustodyEntries.length > 0) {
+        const last = mainCustodyEntries.sort((a,b) => (b.date||'').localeCompare(a.date||''))[0];
+        document.getElementById('mgr-last-add-date').innerText = 'آخر إضافة: ' + last.date;
+    }
+}
+
+// تبديل التبويبات
 function switchManagerTab(tab) {
-    ['expenses','assign','statement','cards'].forEach(t => {
-        document.getElementById('mgr-zone-'+t).classList.add('hidden');
-        document.getElementById('mgr-tab-'+t).className = 'px-4 py-2 rounded-xl text-xs font-bold bg-white text-gray-600 border';
+    ['custody','distribute','expenses','statement','cards'].forEach(t => {
+        const zone = document.getElementById('mgr-zone-' + t);
+        const tabBtn = document.getElementById('mgr-tab-' + t);
+        if(zone) zone.classList.add('hidden');
+        if(tabBtn) tabBtn.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-white text-gray-600 border';
     });
-    document.getElementById('mgr-zone-'+tab).classList.remove('hidden');
-    document.getElementById('mgr-tab-'+tab).className = 'px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white border border-indigo-700';
-    if(tab === 'statement') renderStatementSummary('all');
-}
+    const zone = document.getElementById('mgr-zone-' + tab);
+    const tabBtn = document.getElementById('mgr-tab-' + tab);
+    if(zone) zone.classList.remove('hidden');
+    if(tabBtn) tabBtn.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white border border-indigo-700';
 
-function toggleVisaCardSelect() {
-    const isVisa = document.getElementById('mgr-pay-visa')?.checked;
-    const row = document.getElementById('mgr-visa-card-row');
-    if(row) row.classList.toggle('hidden', !isVisa);
-}
-
-document.addEventListener('input', function(e) {
-    if(['mgr-exp-qty','mgr-exp-price'].includes(e.target.id)) {
-        const qty = parseFloat(document.getElementById('mgr-exp-qty').value) || 0;
-        const price = parseFloat(document.getElementById('mgr-exp-price').value) || 0;
-        const el = document.getElementById('mgr-exp-total-preview');
-        if(el) el.textContent = (qty * price).toLocaleString();
-    }
-});
-
-function loadManagerData() {
-    db.ref('managerExpenses').on('value', snap => {
-        managerGeneralExpenses = [];
-        const data = snap.val() || {};
-        Object.keys(data).forEach(k => { managerGeneralExpenses.push({ ...data[k], _key: k }); });
-        managerGeneralExpenses.sort((a,b) => (b.date||'').localeCompare(a.date||''));
-        renderManagerExpenses();
-        renderAssignExpenseSelect();
+    if(tab === 'statement') {
+        setTodayDates();
         renderStatementSummary('all');
-        renderManagerCustodySummaryCards();
-    });
-    db.ref('managerAssignments').on('value', snap => {
-        managerAssignments = [];
-        const data = snap.val() || {};
-        Object.keys(data).forEach(k => { managerAssignments.push({ ...data[k], _key: k }); });
-        managerAssignments.sort((a,b) => (b.date||'').localeCompare(a.date||''));
-        renderAssignmentsList();
-    });
-    db.ref('managerVisaCards').on('value', snap => {
-        managerVisaCards = [];
-        const data = snap.val() || {};
-        Object.keys(data).forEach(k => { managerVisaCards.push({ ...data[k], _key: k }); });
-        renderVisaCards();
-        renderVisaCardSelects();
-    });
-}
-
-// ==========================================
-// 💾 إضافة مصروف عام
-// ==========================================
-function addGeneralExpense() {
-    const desc = document.getElementById('mgr-exp-desc').value.trim();
-    const qty = parseInt(document.getElementById('mgr-exp-qty').value) || 0;
-    const price = parseFloat(document.getElementById('mgr-exp-price').value) || 0;
-    const date = document.getElementById('mgr-exp-date').value;
-    const payMethod = document.querySelector('input[name="mgr-pay-method"]:checked')?.value || 'cash';
-    const cardId = payMethod === 'visa' ? (document.getElementById('mgr-visa-select')?.value || '') : '';
-    if(!desc) return alert('يرجى إدخال بيان المصروف!');
-    if(qty < 1) return alert('يرجى إدخال كمية صحيحة!');
-    if(price <= 0) return alert('يرجى إدخال سعر الوحدة!');
-    if(payMethod === 'visa' && !cardId) return alert('يرجى اختيار بطاقة الفيزا!');
-    if(!date) return alert('يرجى تحديد التاريخ!');
-    const cardName = payMethod === 'visa' ? (managerVisaCards.find(c => c._key === cardId)?.name || '') : '';
-    const expense = { id:'EXP-'+Date.now(), date, desc, qty, remainingQty:qty, unitPrice:price, total:qty*price, payMethod, cardId, cardName };
-    db.ref('managerExpenses').push(expense, ()=>{
-        document.getElementById('mgr-exp-desc').value = '';
-        document.getElementById('mgr-exp-qty').value = '';
-        document.getElementById('mgr-exp-price').value = '';
-        const el = document.getElementById('mgr-exp-total-preview');
-        if(el) el.textContent = '0';
-        alert('✅ تم حفظ المصروف بنجاح!');
-    });
-}
-
-function renderManagerExpenses() {
-    const tb = document.getElementById('mgr-expenses-tbody');
-    if(!tb) return;
-    if(!managerGeneralExpenses.length) {
-        tb.innerHTML = '<tr><td colspan="8" class="text-center text-gray-400 p-4">لا توجد مصروفات بعد.</td></tr>'; return;
     }
-    tb.innerHTML = managerGeneralExpenses.map((e,i) => {
-        const bg = i%2===0 ? '' : 'bg-slate-50';
-        const payBadge = e.payMethod === 'cash'
-            ? '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold text-[10px]">💵 نقدي</span>'
-            : `<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold text-[10px]">💳 ${e.cardName||'فيزا'}</span>`;
-        const remainColor = e.remainingQty > 0 ? 'text-amber-600' : 'text-slate-400';
-        return `<tr class="${bg}">
-            <td class="p-2 font-mono text-[11px]">${e.date||''}</td>
-            <td class="p-2 font-bold text-[11px]">${e.desc}</td>
-            <td class="p-2 text-center font-mono">${e.qty}</td>
-            <td class="p-2 text-center font-mono font-black ${remainColor}">${e.remainingQty}</td>
-            <td class="p-2 text-center font-mono">${(e.unitPrice||0).toLocaleString()}</td>
-            <td class="p-2 text-center font-mono font-black text-blue-700">${(e.total||0).toLocaleString()}</td>
-            <td class="p-2 text-center">${payBadge}</td>
-            <td class="p-2 text-center"><button onclick="deleteGeneralExpense('${e._key}')" class="text-red-500 hover:text-red-700 text-xs font-bold">حذف</button></td>
-        </tr>`;
-    }).join('');
-}
-
-function deleteGeneralExpense(key) {
-    if(!confirm('هل تريد حذف هذا المصروف؟')) return;
-    db.ref('managerExpenses/' + key).remove();
-}
-
-// ==========================================
-// 🚗 تحميل مصروف على سيارة
-// ==========================================
-function renderAssignExpenseSelect() {
-    const sel = document.getElementById('mgr-assign-expense-select');
-    if(!sel) return;
-    sel.innerHTML = '<option value="">-- اختر مصروف --</option>';
-    managerGeneralExpenses.filter(e => e.remainingQty > 0).forEach(e => {
-        sel.innerHTML += `<option value="${e._key}">${e.desc} (متبقي: ${e.remainingQty} — ${e.unitPrice} ج/وحدة)</option>`;
-    });
-}
-
-function updateAssignAvailable() {
-    const key = document.getElementById('mgr-assign-expense-select').value;
-    const exp = managerGeneralExpenses.find(e => e._key === key);
-    const lbl = document.getElementById('mgr-assign-avail-label');
-    if(lbl) lbl.innerText = exp ? `متاح: ${exp.remainingQty} وحدة` : 'متاح: —';
-}
-
-function assignExpenseToCar() {
-    const expKey = document.getElementById('mgr-assign-expense-select').value;
-    const carNum = document.getElementById('mgr-assign-car').value.trim();
-    const qty = parseInt(document.getElementById('mgr-assign-qty').value) || 0;
-    const date = document.getElementById('mgr-assign-date').value;
-    const exp = managerGeneralExpenses.find(e => e._key === expKey);
-    if(!expKey || !exp) return alert('يرجى اختيار المصروف!');
-    if(!carNum) return alert('يرجى إدخال رقم السيارة!');
-    if(qty < 1) return alert('يرجى إدخال كمية صحيحة!');
-    if(qty > exp.remainingQty) return alert(`الكمية المطلوبة (${qty}) أكبر من المتاح (${exp.remainingQty})!`);
-    if(!date) return alert('يرجى تحديد التاريخ!');
-    const amount = qty * (exp.unitPrice || 0);
-    const assignment = { id:'ASN-'+Date.now(), date, expenseId:expKey, expenseDesc:exp.desc, carNum, qty, amount };
-    db.ref('managerAssignments').push(assignment, ()=>{
-        db.ref('managerExpenses/' + expKey + '/remainingQty').set(exp.remainingQty - qty, ()=>{
-            alert(`✅ تم تحميل ${qty} وحدة بمبلغ ${amount} ج على السيارة ${carNum}.`);
-            document.getElementById('mgr-assign-car').value = '';
-            document.getElementById('mgr-assign-qty').value = '';
-        });
-    });
-}
-
-function renderAssignmentsList() {
-    const tb = document.getElementById('mgr-assignments-tbody');
-    if(!tb) return;
-    if(!managerAssignments.length) {
-        tb.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 p-4">لا توجد تحميلات بعد.</td></tr>'; return;
+    if(tab === 'expenses') {
+        const expType = document.getElementById('mgr-exp-type');
+        if(expType) toggleExpenseVisaRow();
     }
-    tb.innerHTML = managerAssignments.map((a,i) => `
-        <tr class="${i%2===0?'':'bg-slate-50'}">
-            <td class="p-2 font-mono text-[11px]">${a.date}</td>
-            <td class="p-2 font-bold text-[11px]">${a.expenseDesc}</td>
-            <td class="p-2 text-center font-bold text-blue-700">${a.carNum}</td>
-            <td class="p-2 text-center font-mono">${a.qty}</td>
-            <td class="p-2 text-center font-mono font-black text-emerald-700">${(a.amount||0).toLocaleString()} ج</td>
-            <td class="p-2 text-center"><button onclick="deleteAssignment('${a._key}')" class="text-red-500 hover:text-red-700 text-xs font-bold">حذف</button></td>
-        </tr>`).join('');
+    if(tab === 'distribute') {
+        const distTarget = document.getElementById('mgr-dist-target');
+        if(distTarget) toggleDistVisaRow();
+    }
 }
 
-function deleteAssignment(key) {
-    if(!confirm('هل تريد حذف هذا التحميل؟')) return;
-    db.ref('managerAssignments/' + key).remove();
+// تبديل صفوف الفيزا
+function toggleExpenseVisaRow() {
+    const type = document.getElementById('mgr-exp-type')?.value;
+    const row = document.getElementById('mgr-exp-visa-card-row');
+    if(row) row.classList.toggle('hidden', type !== 'visa');
+    populateExpenseVisaSelect();
 }
 
-// ==========================================
-// 💳 بطاقات الفيزا
-// ==========================================
-function addVisaCard() {
-    const name = document.getElementById('mgr-card-name').value.trim();
-    const last4 = document.getElementById('mgr-card-last4').value.trim();
-    if(!name) return alert('يرجى إدخال اسم البطاقة!');
-    if(last4.length !== 4 || isNaN(last4)) return alert('يرجى إدخال آخر 4 أرقام صحيحة!');
-    db.ref('managerVisaCards').push({ name, last4 }, ()=>{
-        alert('✅ تم إضافة البطاقة.');
-        document.getElementById('mgr-card-name').value = '';
-        document.getElementById('mgr-card-last4').value = '';
-    });
+function toggleDistVisaRow() {
+    const target = document.getElementById('mgr-dist-target')?.value;
+    const row = document.getElementById('mgr-dist-visa-row');
+    if(row) row.classList.toggle('hidden', target !== 'visa');
+    populateDistVisaSelect();
 }
 
-function renderVisaCards() {
-    const el = document.getElementById('mgr-visa-cards-list');
-    if(!el) return;
-    if(!managerVisaCards.length) { el.innerHTML='<p class="text-center text-gray-400 text-xs p-3">لا توجد بطاقات بعد.</p>'; return; }
-    el.innerHTML = managerVisaCards.map(c => `
-        <div class="flex justify-between items-center bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs">
-            <div>
-                <span class="font-bold text-blue-900">${c.name}</span>
-                <span class="text-gray-400 font-mono ml-2">**** ${c.last4}</span>
-            </div>
-            <button onclick="deleteVisaCard('${c._key}')" class="text-red-500 hover:text-red-700 font-bold text-xs">حذف</button>
-        </div>`).join('');
-}
-
-function renderVisaCardSelects() {
-    const sel = document.getElementById('mgr-visa-select');
+function populateExpenseVisaSelect() {
+    const sel = document.getElementById('mgr-exp-visa-select');
     if(!sel) return;
     sel.innerHTML = '<option value="">-- اختر البطاقة --</option>';
     managerVisaCards.forEach(c => {
         sel.innerHTML += `<option value="${c._key}">${c.name} (**** ${c.last4})</option>`;
+    });
+}
+
+function populateDistVisaSelect() {
+    const sel = document.getElementById('mgr-dist-visa-select');
+    if(!sel) return;
+    sel.innerHTML = '<option value="">-- اختر البطاقة --</option>';
+    managerVisaCards.forEach(c => {
+        sel.innerHTML += `<option value="${c._key}">${c.name} (**** ${c.last4})</option>`;
+    });
+}
+
+// تحميل البيانات من Firebase
+function loadManagerData() {
+    db.ref('managerCustodyEntries').on('value', snap => {
+        mainCustodyEntries = [];
+        const data = snap.val() || {};
+        Object.keys(data).forEach(k => { mainCustodyEntries.push({ ...data[k], _key: k }); });
+        mainCustodyEntries.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+        renderCustodyHistory();
+        updateManagerBalanceCards();
+    });
+
+    db.ref('managerDistributions').on('value', snap => {
+        distributionEntries = [];
+        const data = snap.val() || {};
+        Object.keys(data).forEach(k => { distributionEntries.push({ ...data[k], _key: k }); });
+        distributionEntries.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+        renderDistributionHistory();
+        updateManagerBalanceCards();
+    });
+
+    db.ref('managerExpensesNew').on('value', snap => {
+        expenseEntries = [];
+        const data = snap.val() || {};
+        Object.keys(data).forEach(k => { expenseEntries.push({ ...data[k], _key: k }); });
+        expenseEntries.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+        renderExpensesList();
+        updateManagerBalanceCards();
+    });
+
+    db.ref('managerVisaCards').on('value', snap => {
+        managerVisaCards = [];
+        const data = snap.val() || {};
+        Object.keys(data).forEach(k => { managerVisaCards.push({ ...data[k], _key: k }); });
+        renderVisaCardsList();
+        renderVisaCardsWithBalance();
+    });
+}
+
+// ========== إضافة عهد رئيسية ==========
+function addMainCustody() {
+    const amount = parseFloat(document.getElementById('mgr-custody-amount').value) || 0;
+    const date = document.getElementById('mgr-custody-date').value;
+    const desc = document.getElementById('mgr-custody-desc').value.trim();
+
+    if(amount <= 0) return alert('يرجى إدخال مبلغ صحيح!');
+    if(!date) return alert('يرجى تحديد التاريخ!');
+
+    const entry = {
+        type: 'custody_add',
+        amount,
+        date,
+        desc: desc || 'إضافة عهد',
+        timestamp: new Date().toISOString()
+    };
+
+    db.ref('managerCustodyEntries').push(entry, () => {
+        document.getElementById('mgr-custody-amount').value = '';
+        document.getElementById('mgr-custody-desc').value = '';
+        alert('✅ تم إضافة العهد بنجاح!');
+    });
+}
+
+function renderCustodyHistory() {
+    const tb = document.getElementById('mgr-custody-history-tbody');
+    if(!tb) return;
+    if(!mainCustodyEntries.length) {
+        tb.innerHTML = '<tr><td colspan="5" class="text-center text-gray-400 p-4">لا توجد عهد إضافية بعد.</td></tr>';
+        return;
+    }
+    tb.innerHTML = mainCustodyEntries.map((e,i) => `
+        <tr class="${i%2===0?'':'bg-indigo-50'}">
+            <td class="p-2 font-mono text-[11px]">${e.date||''}</td>
+            <td class="p-2 font-bold text-emerald-700 font-mono">${(e.amount||0).toLocaleString()} ج</td>
+            <td class="p-2 font-bold text-[11px]">${e.desc||''}</td>
+            <td class="p-2 text-center"><button onclick="showEditCustodyModal('${e._key}')" class="text-blue-600 hover:text-blue-800 font-bold text-xs">✏️</button></td>
+            <td class="p-2 text-center"><button onclick="deleteCustodyEntry('${e._key}')" class="text-red-500 hover:text-red-700 font-bold text-xs">🗑️</button></td>
+        </tr>`).join('');
+}
+
+function showEditCustodyModal(key) {
+    const entry = mainCustodyEntries.find(e => e._key === key);
+    if(!entry) return;
+    document.getElementById('edit-custody-key').value = key;
+    document.getElementById('edit-custody-amount').value = entry.amount;
+    document.getElementById('edit-custody-desc').value = entry.desc || '';
+    document.getElementById('edit-custody-modal').classList.remove('hidden');
+}
+
+function saveCustodyEdit() {
+    const key = document.getElementById('edit-custody-key').value;
+    const amount = parseFloat(document.getElementById('edit-custody-amount').value) || 0;
+    const desc = document.getElementById('edit-custody-desc').value.trim();
+    if(amount <= 0) return alert('المبلغ غير صحيح!');
+    db.ref('managerCustodyEntries/' + key).update({ amount, desc }, () => {
+        closeCustodyModal();
+        alert('✅ تم حفظ التعديلات!');
+    });
+}
+
+function closeCustodyModal() {
+    document.getElementById('edit-custody-modal').classList.add('hidden');
+}
+
+function deleteCustodyEntry(key) {
+    if(!confirm('هل تريد حذف هذا السجل؟')) return;
+    db.ref('managerCustodyEntries/' + key).remove();
+}
+
+// ========== توزيع العهد ==========
+function distributeCustody() {
+    const amount = parseFloat(document.getElementById('mgr-dist-amount').value) || 0;
+    const date = document.getElementById('mgr-dist-date').value;
+    const desc = document.getElementById('mgr-dist-desc').value.trim();
+    const target = document.getElementById('mgr-dist-target').value;
+
+    if(amount <= 0) return alert('يرجى إدخال مبلغ صحيح!');
+    if(!date) return alert('يرجى تحديد التاريخ!');
+
+    let cardId = '', cardName = '';
+    if(target === 'visa') {
+        cardId = document.getElementById('mgr-dist-visa-select').value;
+        if(!cardId) return alert('يرجى اختيار بطاقة الفيزا!');
+        const card = managerVisaCards.find(c => c._key === cardId);
+        cardName = card ? card.name : '';
+    }
+
+    const entry = {
+        type: 'distribution',
+        amount,
+        date,
+        desc: desc || 'توزيع عهد',
+        target,
+        cardId,
+        cardName,
+        timestamp: new Date().toISOString()
+    };
+
+    db.ref('managerDistributions').push(entry, () => {
+        document.getElementById('mgr-dist-amount').value = '';
+        document.getElementById('mgr-dist-desc').value = '';
+        alert('✅ تم التوزيع بنجاح!');
+    });
+}
+
+function renderDistributionHistory() {
+    const tb = document.getElementById('mgr-dist-history-tbody');
+    if(!tb) return;
+    if(!distributionEntries.length) {
+        tb.innerHTML = '<tr><td colspan="5" class="text-center text-gray-400 p-4">لا توجد توزيعات بعد.</td></tr>';
+        return;
+    }
+    tb.innerHTML = distributionEntries.map((e,i) => {
+        const targetBadge = e.target === 'cash'
+            ? '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-[10px] font-bold">💵 نقدي</span>'
+            : '<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[10px] font-bold">💳 ' + (e.cardName||'فيزا') + '</span>';
+        return `<tr class="${i%2===0?'':'bg-blue-50'}">
+            <td class="p-2 font-mono text-[11px]">${e.date||''}</td>
+            <td class="p-2 font-bold text-blue-700 font-mono">${(e.amount||0).toLocaleString()} ج</td>
+            <td class="p-2">${targetBadge}</td>
+            <td class="p-2 font-bold text-[11px]">${e.desc||''}</td>
+            <td class="p-2 text-center"><button onclick="deleteDistEntry('${e._key}')" class="text-red-500 hover:text-red-700 font-bold text-xs">🗑️</button></td>
+        </tr>`;
+    }).join('');
+}
+
+function deleteDistEntry(key) {
+    if(!confirm('هل تريد حذف هذا السجل؟')) return;
+    db.ref('managerDistributions/' + key).remove();
+}
+
+// ========== المصروفات ==========
+function addExpenseWithDeduction() {
+    const desc = document.getElementById('mgr-exp-desc').value.trim();
+    const amount = parseFloat(document.getElementById('mgr-exp-amount').value) || 0;
+    const date = document.getElementById('mgr-exp-date').value;
+    const type = document.getElementById('mgr-exp-type').value;
+
+    if(!desc) return alert('يرجى إدخال بيان المصروف!');
+    if(amount <= 0) return alert('يرجى إدخال مبلغ صحيح!');
+    if(!date) return alert('يرجى تحديد التاريخ!');
+
+    let cardId = '', cardName = '';
+    if(type === 'visa') {
+        cardId = document.getElementById('mgr-exp-visa-select').value;
+        if(!cardId) return alert('يرجى اختيار بطاقة الفيزا!');
+        const card = managerVisaCards.find(c => c._key === cardId);
+        cardName = card ? card.name : '';
+    }
+
+    const entry = {
+        type: 'expense',
+        desc,
+        amount,
+        date,
+        paymentType: type,
+        cardId,
+        cardName,
+        carNum: '',
+        timestamp: new Date().toISOString()
+    };
+
+    db.ref('managerExpensesNew').push(entry, () => {
+        document.getElementById('mgr-exp-desc').value = '';
+        document.getElementById('mgr-exp-amount').value = '';
+        alert('✅ تم تسجيل المصروف!');
+    });
+}
+
+function showCarExpenseModal() {
+    const desc = document.getElementById('mgr-exp-desc').value.trim();
+    const amount = parseFloat(document.getElementById('mgr-exp-amount').value) || 0;
+    const date = document.getElementById('mgr-exp-date').value;
+    const type = document.getElementById('mgr-exp-type').value;
+    const carNum = prompt('رقم السيارة:');
+    if(!carNum) return;
+
+    let cardId = '', cardName = '';
+    if(type === 'visa') {
+        cardId = document.getElementById('mgr-exp-visa-select').value;
+        const card = managerVisaCards.find(c => c._key === cardId);
+        cardName = card ? card.name : '';
+    }
+
+    const entry = {
+        type: 'expense',
+        desc,
+        amount,
+        date,
+        paymentType: type,
+        cardId,
+        cardName,
+        carNum,
+        timestamp: new Date().toISOString()
+    };
+
+    db.ref('managerExpensesNew').push(entry, () => {
+        alert('✅ تم تسجيل المصروف على السيارة ' + carNum + '!');
+    });
+}
+
+function renderExpensesList() {
+    const tb = document.getElementById('mgr-expenses-tbody');
+    if(!tb) return;
+    if(!expenseEntries.length) {
+        tb.innerHTML = '<tr><td colspan="7" class="text-center text-gray-400 p-4">لا توجد مصروفات بعد.</td></tr>';
+        return;
+    }
+    tb.innerHTML = expenseEntries.map((e,i) => {
+        const typeBadge = e.paymentType === 'cash'
+            ? '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-[10px] font-bold">💵 نقدي</span>'
+            : '<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[10px] font-bold">💳 ' + (e.cardName||'فيزا') + '</span>';
+        return `<tr class="${i%2===0?'':'bg-rose-50'}">
+            <td class="p-2 font-mono text-[11px]">${e.date||''}</td>
+            <td class="p-2 font-bold text-[11px]">${e.desc||''}</td>
+            <td class="p-2 font-bold text-rose-700 font-mono">${(e.amount||0).toLocaleString()} ج</td>
+            <td class="p-2">${typeBadge}</td>
+            <td class="p-2 font-bold text-blue-700">${e.carNum||'—'}</td>
+            <td class="p-2 text-center"><button onclick="showEditExpenseModal('${e._key}')" class="text-blue-600 hover:text-blue-800 font-bold text-xs">✏️</button></td>
+            <td class="p-2 text-center"><button onclick="cancelExpense('${e._key}')" class="text-red-500 hover:text-red-700 font-bold text-xs">❌</button></td>
+        </tr>`;
+    }).join('');
+}
+
+function showEditExpenseModal(key) {
+    const entry = expenseEntries.find(e => e._key === key);
+    if(!entry) return;
+    document.getElementById('edit-expense-key').value = key;
+    document.getElementById('edit-expense-amount').value = entry.amount;
+    document.getElementById('edit-expense-desc').value = entry.desc || '';
+    document.getElementById('edit-expense-type').value = entry.paymentType || 'cash';
+    document.getElementById('edit-expense-modal').classList.remove('hidden');
+}
+
+function saveExpenseEdit() {
+    const key = document.getElementById('edit-expense-key').value;
+    const amount = parseFloat(document.getElementById('edit-expense-amount').value) || 0;
+    const desc = document.getElementById('edit-expense-desc').value.trim();
+    const type = document.getElementById('edit-expense-type').value;
+    if(amount <= 0) return alert('المبلغ غير صحيح!');
+    db.ref('managerExpensesNew/' + key).update({ amount, desc, paymentType: type }, () => {
+        closeExpenseModal();
+        alert('✅ تم حفظ التعديلات!');
+    });
+}
+
+function closeExpenseModal() {
+    document.getElementById('edit-expense-modal').classList.add('hidden');
+}
+
+function cancelExpense(key) {
+    if(!confirm('هل تريد إلغاء/حذف هذا المصروف؟')) return;
+    db.ref('managerExpensesNew/' + key).remove();
+}
+
+// ========== بطاقات الفيزا ==========
+function addVisaCard() {
+    const name = document.getElementById('mgr-card-name').value.trim();
+    const last4 = document.getElementById('mgr-card-last4').value.trim();
+    const balance = parseFloat(document.getElementById('mgr-card-balance').value) || 0;
+
+    if(!name) return alert('يرجى إدخال اسم البطاقة!');
+    if(last4.length !== 4 || isNaN(last4)) return alert('يرجى إدخال آخر 4 أرقام صحيحة!');
+
+    db.ref('managerVisaCards').push({ name, last4, balance }, () => {
+        document.getElementById('mgr-card-name').value = '';
+        document.getElementById('mgr-card-last4').value = '';
+        document.getElementById('mgr-card-balance').value = '';
+        alert('✅ تم إضافة البطاقة.');
+    });
+}
+
+function renderVisaCardsList() {
+    const el = document.getElementById('mgr-visa-cards-list');
+    if(!el) return;
+    if(!managerVisaCards.length) {
+        el.innerHTML = '<p class="text-center text-gray-400 text-xs p-3">لا توجد بطاقات بعد.</p>';
+        return;
+    }
+    el.innerHTML = managerVisaCards.map(c => `
+        <div class="flex justify-between items-center bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs">
+            <div class="flex items-center gap-2">
+                <span class="font-bold text-blue-900">${c.name}</span>
+                <span class="text-gray-400 font-mono">**** ${c.last4}</span>
+                <span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[10px] font-bold">${(c.balance||0).toLocaleString()} ج</span>
+            </div>
+            <button onclick="deleteVisaCard('${c._key}')" class="text-red-500 hover:text-red-700 font-bold text-xs">🗑️</button>
+        </div>`).join('');
+}
+
+function renderVisaCardsWithBalance() {
+    // تحديث select البطاقات
+    const selects = ['mgr-exp-visa-select', 'mgr-dist-visa-select'];
+    selects.forEach(selId => {
+        const sel = document.getElementById(selId);
+        if(!sel) return;
+        const prev = sel.value;
+        sel.innerHTML = '<option value="">-- اختر البطاقة --</option>';
+        managerVisaCards.forEach(c => {
+            sel.innerHTML += `<option value="${c._key}">${c.name} (**** ${c.last4}) - ${(c.balance||0).toLocaleString()} ج</option>`;
+        });
+        if(prev) sel.value = prev;
     });
 }
 
@@ -2229,39 +2631,137 @@ function deleteVisaCard(key) {
     db.ref('managerVisaCards/' + key).remove();
 }
 
-// ==========================================
-// 📊 كشف الحساب
-// ==========================================
+// ========== كشف حساب مفصل ==========
+function setTodayDates() {
+    const today = new Date().toISOString().split('T')[0];
+    if(document.getElementById('mgr-exp-date')) document.getElementById('mgr-exp-date').value = today;
+    if(document.getElementById('mgr-custody-date')) document.getElementById('mgr-custody-date').value = today;
+    if(document.getElementById('mgr-dist-date')) document.getElementById('mgr-dist-date').value = today;
+    if(document.getElementById('stmt-from-date')) document.getElementById('stmt-from-date').value = today.substring(0,7) + '-01';
+    if(document.getElementById('stmt-to-date')) document.getElementById('stmt-to-date').value = today;
+}
+
+function filterStatementByDate() {
+    const fromDate = document.getElementById('stmt-from-date')?.value;
+    const toDate = document.getElementById('stmt-to-date')?.value;
+    if(!fromDate || !toDate) return alert('يرجى تحديد التاريخين!');
+    renderStatementByDateRange(fromDate, toDate);
+}
+
+function renderStatementByDateRange(fromDate, toDate) {
+    const el = document.getElementById('mgr-statement-content');
+    if(!el) return;
+
+    const allEntries = [
+        ...mainCustodyEntries.map(e => ({...e, category: 'custody_add'})),
+        ...distributionEntries.map(e => ({...e, category: 'distribution'})),
+        ...expenseEntries.map(e => ({...e, category: 'expense'}))
+    ].filter(e => e.date >= fromDate && e.date <= toDate)
+     .sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+    const totalIn = mainCustodyEntries.filter(e => e.date >= fromDate && e.date <= toDate)
+        .reduce((a,e) => a + parseFloat(e.amount||0), 0);
+    const totalOut = expenseEntries.filter(e => e.date >= fromDate && e.date <= toDate)
+        .reduce((a,e) => a + parseFloat(e.amount||0), 0);
+
+    document.getElementById('stmt-total-in').innerText = totalIn.toLocaleString() + ' ج';
+    document.getElementById('stmt-total-out').innerText = totalOut.toLocaleString() + ' ج';
+    document.getElementById('stmt-balance').innerText = (totalIn - totalOut).toLocaleString() + ' ج';
+
+    if(!allEntries.length) {
+        el.innerHTML = '<p class="text-center text-gray-400 p-4">لا توجد حركات في هذه الفترة.</p>';
+        return;
+    }
+
+    el.innerHTML = `<div class="overflow-x-auto">
+        <table class="w-full text-xs text-right border rounded">
+            <thead class="bg-violet-100 font-bold">
+                <tr><th class="p-2">التاريخ</th><th class="p-2">النوع</th><th class="p-2">البيان</th><th class="p-2 text-center">وارد</th><th class="p-2 text-center">منصرف</th></tr>
+            </thead>
+            <tbody class="divide-y">${allEntries.map(e => {
+                const catBadge = e.category === 'custody_add'
+                    ? '<span class="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded text-[10px] font-bold">➕ عهد</span>'
+                    : e.category === 'distribution'
+                    ? '<span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">↗️ توزيع</span>'
+                    : '<span class="bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded text-[10px] font-bold">📤 مصروف</span>';
+                return `<tr>
+                    <td class="p-2 font-mono">${e.date||''}</td>
+                    <td class="p-2">${catBadge}</td>
+                    <td class="p-2 font-bold">${e.desc||''}</td>
+                    <td class="p-2 text-center font-mono text-emerald-700">${e.category==='custody_add'?(e.amount||0).toLocaleString()+' ج':'—'}</td>
+                    <td class="p-2 text-center font-mono text-rose-700">${e.category==='expense'?(e.amount||0).toLocaleString()+' ج':'—'}</td>
+                </tr>`;
+            }).join('')}</tbody>
+        </table>
+    </div>`;
+}
+
 function renderStatementSummary(filter) {
     const el = document.getElementById('mgr-statement-content');
     if(!el) return;
-    const expenses = managerGeneralExpenses.filter(e => filter==='all' || e.payMethod===filter);
-    const total = parseFloat(systemData.config?.managerCustody || 0);
-    const cashSpent = managerGeneralExpenses.filter(e=>e.payMethod==='cash').reduce((a,e)=>a+parseFloat(e.total||0),0);
-    const visaSpent = managerGeneralExpenses.filter(e=>e.payMethod==='visa').reduce((a,e)=>a+parseFloat(e.total||0),0);
-    const filteredTotal = expenses.reduce((a,e)=>a+parseFloat(e.total||0),0);
-    if(!expenses.length) { el.innerHTML='<p class="text-center text-gray-400 p-4">لا توجد مصروفات.</p>'; return; }
-    el.innerHTML = `
-        <div class="grid grid-cols-3 gap-2 mb-3">
-            <div class="bg-violet-50 border border-violet-200 rounded-lg p-2 text-center"><div class="text-[10px] text-violet-500">إجمالي العهدة</div><div class="font-black text-violet-800 font-mono">${total.toLocaleString()} ج</div></div>
-            <div class="bg-red-50 border border-red-200 rounded-lg p-2 text-center"><div class="text-[10px] text-red-500">إجمالي المصروف</div><div class="font-black text-red-700 font-mono">${filteredTotal.toLocaleString()} ج</div></div>
-            <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-center"><div class="text-[10px] text-emerald-500">المتبقي (نقدي)</div><div class="font-black text-emerald-800 font-mono">${(total-cashSpent).toLocaleString()} ج</div></div>
-        </div>
-        <div class="overflow-x-auto">
-        <table class="w-full text-xs text-right border">
-            <thead class="bg-slate-100 font-bold"><tr><th class="p-2">التاريخ</th><th class="p-2">البيان</th><th class="p-2 text-center">الكمية</th><th class="p-2 text-center">سعر الوحدة</th><th class="p-2 text-center">الإجمالي</th><th class="p-2 text-center">طريقة الدفع</th></tr></thead>
-            <tbody class="divide-y">${expenses.map(e=>`
-                <tr>
-                    <td class="p-2 font-mono">${e.date}</td>
-                    <td class="p-2 font-bold">${e.desc}</td>
-                    <td class="p-2 text-center font-mono">${e.qty}</td>
-                    <td class="p-2 text-center font-mono">${(e.unitPrice||0).toLocaleString()}</td>
-                    <td class="p-2 text-center font-mono font-black text-blue-700">${(e.total||0).toLocaleString()} ج</td>
-                    <td class="p-2 text-center">${e.payMethod==='cash'?'<span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-bold">💵 نقدي</span>':`<span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">💳 ${e.cardName||'فيزا'}</span>`}</td>
-                </tr>`).join('')}
-            </tbody>
+
+    let entries = [];
+    let totalIn = 0, totalOut = 0;
+
+    if(filter === 'all' || filter === 'custody') {
+        mainCustodyEntries.forEach(e => {
+            entries.push({...e, category: 'custody_add'});
+            totalIn += parseFloat(e.amount||0);
+        });
+    }
+
+    if(filter === 'all' || filter === 'cash') {
+        distributionEntries.filter(e => e.target === 'cash').forEach(e => {
+            entries.push({...e, category: 'distribution'});
+        });
+        expenseEntries.filter(e => e.paymentType === 'cash').forEach(e => {
+            entries.push({...e, category: 'expense'});
+            totalOut += parseFloat(e.amount||0);
+        });
+    }
+
+    if(filter === 'all' || filter === 'visa') {
+        distributionEntries.filter(e => e.target === 'visa').forEach(e => {
+            entries.push({...e, category: 'distribution'});
+        });
+        expenseEntries.filter(e => e.paymentType === 'visa').forEach(e => {
+            entries.push({...e, category: 'expense'});
+            totalOut += parseFloat(e.amount||0);
+        });
+    }
+
+    entries.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+    document.getElementById('stmt-total-in').innerText = totalIn.toLocaleString() + ' ج';
+    document.getElementById('stmt-total-out').innerText = totalOut.toLocaleString() + ' ج';
+    document.getElementById('stmt-balance').innerText = (totalIn - totalOut).toLocaleString() + ' ج';
+
+    if(!entries.length) {
+        el.innerHTML = '<p class="text-center text-gray-400 p-4">لا توجد حركات.</p>';
+        return;
+    }
+
+    el.innerHTML = `<div class="overflow-x-auto">
+        <table class="w-full text-xs text-right border rounded">
+            <thead class="bg-violet-100 font-bold">
+                <tr><th class="p-2">التاريخ</th><th class="p-2">النوع</th><th class="p-2">البيان</th><th class="p-2 text-center">وارد</th><th class="p-2 text-center">منصرف</th></tr>
+            </thead>
+            <tbody class="divide-y">${entries.map(e => {
+                const catBadge = e.category === 'custody_add'
+                    ? '<span class="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded text-[10px] font-bold">➕ عهد</span>'
+                    : e.category === 'distribution'
+                    ? '<span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">↗️ توزيع</span>'
+                    : '<span class="bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded text-[10px] font-bold">📤 مصروف</span>';
+                return `<tr>
+                    <td class="p-2 font-mono">${e.date||''}</td>
+                    <td class="p-2">${catBadge}</td>
+                    <td class="p-2 font-bold">${e.desc||''}</td>
+                    <td class="p-2 text-center font-mono text-emerald-700">${e.category==='custody_add'?(e.amount||0).toLocaleString()+' ج':'—'}</td>
+                    <td class="p-2 text-center font-mono text-rose-700">${e.category==='expense'?(e.amount||0).toLocaleString()+' ج':'—'}</td>
+                </tr>`;
+            }).join('')}</tbody>
         </table>
-        </div>`;
+    </div>`;
 }
 
 // ==========================================
