@@ -420,6 +420,65 @@
       </div>
     </section>
 
+    <!-- ===== Settings: Firebase Backup/Restore/Migration ===== -->
+    <section class="section" id="sec-settings">
+      <div class="pg-head"><div><div class="pg-title">⚙️ إعدادات Firebase</div><div class="pg-sub">نسخ احتياطي واسترجاع واستيراد من Google Sheets</div></div></div>
+
+      <!-- Backup / Restore -->
+      <div class="form-card" style="margin-bottom:16px">
+        <div class="form-card-head"><i class="fa-solid fa-database"></i> النسخ الاحتياطي واسترجاع البيانات</div>
+        <div class="form-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div style="border:2px dashed #e2e8f0;border-radius:12px;padding:20px;text-align:center">
+              <i class="fa-solid fa-download" style="font-size:2rem;color:#2563eb;margin-bottom:8px"></i>
+              <div style="font-weight:700;margin-bottom:4px">تصدير النسخة الاحتياطية</div>
+              <div style="font-size:.75rem;color:#64748b;margin-bottom:12px">تحميل جميع البيانات كملف JSON</div>
+              <button class="btn btn-blue" onclick="exportFirebaseBackup()"><i class="fa-solid fa-download"></i> تصدير_backup</button>
+            </div>
+            <div style="border:2px dashed #e2e8f0;border-radius:12px;padding:20px;text-align:center">
+              <i class="fa-solid fa-upload" style="font-size:2rem;color:#16a34a;margin-bottom:8px"></i>
+              <div style="font-weight:700;margin-bottom:4px">استرجاع من ملف احتياطي</div>
+              <div style="font-size:.75rem;color:#64748b;margin-bottom:12px">استبدال البيانات بملف JSON محفوظ</div>
+              <label class="btn btn-green" style="cursor:pointer"><i class="fa-solid fa-upload"></i> استرجاع_backup<input type="file" accept=".json" onchange="importFirebaseBackup(this)" style="display:none"></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Google Sheets Migration -->
+      <div class="form-card">
+        <div class="form-card-head"><i class="fa-solid fa-file-import"></i> استيراد البيانات من Google Sheets</div>
+        <div class="form-body">
+          <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:12px;margin-bottom:16px;font-size:.8rem">
+            <strong>💡 تعليمات:</strong>
+            <ol style="margin-top:6px;padding-right:16px;line-height:1.8">
+              <li>افتح Google Sheet القديم الذي يحتوي على البيانات</li>
+              <li> انسخ الرابط من شريط العنوان</li>
+              <li>ضع الرابط في الحقل أدناه واضغط "جلب البيانات"</li>
+              <li>راجع البيانات ثم اضغط "بدء الاستيراد"</li>
+            </ol>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <input type="text" id="migration-url" placeholder="الصق رابط Google Sheet هنا..." style="flex:1;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.85rem">
+            <button class="btn btn-blue" onclick="fetchSheetData()"><i class="fa-solid fa-cloud-arrow-down"></i> جلب البيانات</button>
+          </div>
+          <div class="form-footer" style="padding:0;border:none;margin-bottom:12px">
+            <span style="font-size:.72rem;color:#64748b">💡 يجب أن يكون الشيت عاماً (Public) أو استخدم رابط Apps Script</span>
+          </div>
+          <div id="migration-preview" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <div id="migration-stats"></div>
+              <button class="btn btn-gold" onclick="doMigration()"><i class="fa-solid fa-database"></i> بدء الاستيراد إلى Firebase</button>
+            </div>
+            <div class="tbl-wrap" style="max-height:250px;overflow-y:auto">
+              <table><thead><tr><th>البيانات</th><th>التفاصيل</th></tr></thead>
+              <tbody id="migration-tbody"></tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== Reports ===== -->
     <section class="section" id="sec-reports">
       <div class="pg-head"><div><div class="pg-title">📊 التقارير الشاملة</div></div></div>

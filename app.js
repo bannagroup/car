@@ -103,7 +103,8 @@ const SCREENS = {
   traffic: { icon: "fa-traffic-light", label: "مدير الحركة", roles: ["traffic"] },
   finance: { icon: "fa-wallet", label: "المدير المالي", roles: ["finance"] },
   manager: { icon: "fa-receipt", label: "المصروفات العامة", roles: ["manager"] },
-  reports: { icon: "fa-chart-pie", label: "التقارير", roles: ["admin","traffic","finance","manager"] }
+  reports: { icon: "fa-chart-pie", label: "التقارير", roles: ["admin","traffic","finance","manager"] },
+  settings: { icon: "fa-gear", label: "الإعدادات", roles: ["admin"] }
 };
 
 function buildNav() {
@@ -939,6 +940,159 @@ db.ref("/").on("value", snap => {
   SYS.managerVisaCards = v.managerVisaCards || {};
   renderScreen(getCurrentScreen());
 });
+
+// ======================== FIREBASE SETTINGS & MIGRATION ========================
+
+// --- Firebase Backup/Restore ---
+function exportFirebaseBackup() {
+  db.ref("/").once("value", snap => {
+    const data = snap.val();
+    if (!data) { toast("لا توجد بيانات للتصدير", "warn"); return; }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "backup_firebase_" + new Date().toISOString().split("T")[0] + ".json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    toast("✅ تم تصدير النسخة الاحتياطية", "ok");
+  });
+}
+
+function importFirebaseBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data || typeof data !== "object") throw new Error("الملف غير صالح");
+      if (!confirm("⚠️ سيتم استبدال كل البيانات الحالية بالبيانات من الملف!\nهل أنت متأكد؟")) return;
+      db.ref("/").set(data, () => {
+        toast("✅ تم استرجاع البيانات بنجاح", "ok");
+        loadAll();
+      });
+    } catch (err) {
+      toast("❌ خطأ في الملف: " + err.message, "err");
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = "";
+}
+
+// --- Google Sheets Migration ---
+let migrationSheetUrl = "";
+let migrationData = [];
+
+function setMigrationUrl() {
+  migrationSheetUrl = document.getElementById("migration-url").value.trim();
+  if (!migrationSheetUrl) { alert("أدخل رابط الشيت!"); return; }
+  toast("✅ تم حفظ الرابط — اضغط 'جلب البيانات'", "ok");
+}
+
+async function fetchSheetData() {
+  const url = migrationSheetUrl || document.getElementById("migration-url").value.trim();
+  if (!url) { alert("أدخل رابط Google Sheet!"); return; }
+
+  // Extract sheet ID from URL
+  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if (!match) { alert("رابط غير صالح! أدخل رابط Google Sheet صحيح"); return; }
+  const sheetId = match[1];
+
+  setStatus("loading", "جاري جلب البيانات من Google Sheets...");
+  document.getElementById("migration-preview").style.display = "none";
+
+  try {
+    // Fetch as CSV (public sheets only, or use API key)
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+    const response = await fetch(csvUrl);
+    if (!response.ok) throw new Error("تعذر الوصول للشيت — تأكد أنه عام (Public)");
+    const csv = await response.text();
+    parseMigrationCSV(csv);
+  } catch (err) {
+    // Fallback: try using the Apps Script web app URL
+    try {
+      const gasUrl = migrationSheetUrl.replace(/\/edit.*$/, "/exec");
+      const response = await fetch(gasUrl + "?action=getAll");
+      const json = await response.json();
+      if (json.status === "ok" && json.data) {
+        migrationData = json.data;
+        renderMigrationPreview();
+      } else {
+        throw new Error("البيانات غير صحيحة");
+      }
+    } catch (err2) {
+      toast("❌ تعذر جلب البيانات: " + err.message + "\nجرّب جعل الشيت عاماً أو استخدم رابط Apps Script", "err");
+      setStatus("err", "فشل جلب البيانات");
+    }
+  }
+}
+
+function parseMigrationCSV(csv) {
+  const lines = csv.split("\n");
+  if (lines.length < 2) { toast("الشيت فارغ!", "warn"); return; }
+  const headers = lines[0].split(",").map(h => h.trim().replace(/"/g, ""));
+  migrationData = { drivers: [], violations: [], deductions: [], accounts: [], licenses: [] };
+
+  // Try to detect which sheet data this is based on headers
+  const headerStr = headers.join(",").toLowerCase();
+
+  if (headerStr.includes("سائق") || headerStr.includes("driver")) {
+    // This looks like drivers data
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(",").map(c => c.trim().replace(/"/g, ""));
+      if (cols[0]) migrationData.drivers.push({ name: cols[0], car: cols[1] || "" });
+    }
+  }
+
+  renderMigrationPreview();
+}
+
+function renderMigrationPreview() {
+  const preview = document.getElementById("migration-preview");
+  const stats = document.getElementById("migration-stats");
+  const tbody = document.getElementById("migration-tbody");
+
+  preview.style.display = "";
+
+  if (migrationData.drivers) {
+    stats.innerHTML = `<span style="background:#dcfce7;color:#16a34a;padding:3px 10px;border-radius:12px;font-size:.75rem;font-weight:700">👤 ${migrationData.drivers.length} سائق</span>`;
+    tbody.innerHTML = migrationData.drivers.map(d =>
+      `<tr><td>${d.name}</td><td>${d.car || ""}</td></tr>`
+    ).join("");
+  } else if (Array.isArray(migrationData)) {
+    stats.innerHTML = `<span style="background:#dcfce7;color:#16a34a;padding:3px 10px;border-radius:12px;font-size:.75rem;font-weight:700">📊 ${migrationData.length} سجل</span>`;
+    tbody.innerHTML = migrationData.slice(0, 20).map(d =>
+      `<tr><td colspan="2">${JSON.stringify(d).substring(0, 100)}</td></tr>`
+    ).join("");
+  }
+}
+
+async function doMigration() {
+  if (!migrationData || (migrationData.drivers && !migrationData.drivers.length)) {
+    toast("لا توجد بيانات للاستيراد!", "warn"); return;
+  }
+  if (!confirm("هل تريد استيراد البيانات إلى Firebase؟\nسيتم إضافة البيانات إلى البيانات الحالية.")) return;
+
+  setStatus("loading", "جاري الاستيراد...");
+  let count = 0;
+
+  try {
+    if (migrationData.drivers) {
+      for (const d of migrationData.drivers) {
+        db.ref("cars").push({
+          id: d.car || "", chassis: "", motor: "", type: "", model: "",
+          expiry: "", company: "", driverName: d.name
+        });
+        count++;
+      }
+    }
+    setStatus("ok", `✅ تم استيراد ${count} سجل`);
+    toast(`✅ تم استيراد ${count} سجل`, "ok");
+    loadAll();
+  } catch (err) {
+    toast("❌ خطأ: " + err.message, "err");
+    setStatus("err", "فشل الاستيراد");
+  }
+}
 
 // ======================== Init ========================
 document.getElementById("login-pass").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
