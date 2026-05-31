@@ -462,8 +462,12 @@
             <input type="text" id="migration-url" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vS4nRAlbeAEzIdy2p5ewp0QqnzM5ingxtswGtpG6z86fS_SQ6lsIS4fxJYy6DRUhMrKHQZPXp08k4tE/pub?output=csv" placeholder="الصق رابط Google Sheet هنا..." style="flex:1;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.85rem">
             <button class="btn btn-blue" onclick="fetchSheetData()"><i class="fa-solid fa-cloud-arrow-down"></i> جلب البيانات</button>
           </div>
+          <div style="margin-bottom:12px">
+            <div style="font-size:.75rem;color:#64748b;margin-bottom:6px">أو حمّل ملف Excel/CSV من الشيت يدوياً:</div>
+            <input type="file" id="migration-file" accept=".csv,.xlsx,.xls" onchange="fetchFromFile(event)" style="font-size:.78rem">
+          </div>
           <div class="form-footer" style="padding:0;border:none;margin-bottom:12px">
-            <span style="font-size:.72rem;color:#64748b">💡 يجب أن يكون الشيت عاماً (Public) أو استخدم رابط Apps Script</span>
+            <span style="font-size:.72rem;color:#64748b">💡 لو الجلب المباشر ما اشتغل، حمّل الشيت كـ Excel وارفعه من فوق</span>
           </div>
           <div id="migration-preview" style="display:none">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">

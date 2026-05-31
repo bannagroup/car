@@ -1001,22 +1001,30 @@ async function fetchSheetData() {
   let csvUrl = url;
   if (url.includes("/pub?")) {
     csvUrl = url.replace("output=xlsx", "output=csv").replace("output=html", "output=csv");
+    if (!csvUrl.includes("output=csv")) csvUrl += "&output=csv";
   } else if (url.includes("/edit")) {
     const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (match) csvUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv&gid=0`;
   }
 
+  console.log("Fetching CSV from:", csvUrl);
+
   try {
-    const resp = await fetch(csvUrl);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status} — تأكد أن الشيت عام (Public)`);
+    const resp = await fetch(csvUrl, { mode: "cors" });
+    console.log("Response status:", resp.status);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const csv = await resp.text();
+    console.log("CSV length:", csv.length, "First 200 chars:", csv.substring(0, 200));
+
     const rows = parseCSVText(csv);
+    console.log("Parsed rows:", rows.length);
 
     if (rows.length < 2) { toast("الشيت فارغ!", "warn"); setStatus("err", "الشيت فارغ"); return; }
 
-    // Parse the CSV — detect columns by header
     const headers = rows[0].map(h => String(h).trim());
+    console.log("Headers:", headers);
     const colMap = detectColumns(headers);
+    console.log("Column map:", colMap);
 
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
@@ -1026,7 +1034,7 @@ async function fetchSheetData() {
       const carNum = colMap.car >= 0 ? String(r[colMap.car] || "").trim() : "";
       const id = colMap.id >= 0 ? String(r[colMap.id] || "").trim() : "";
 
-      if (!driverName && !carNum) continue; // skip empty rows
+      if (!driverName && !carNum) continue;
 
       migrationResults.drivers.push({
         name: driverName,
@@ -1036,13 +1044,15 @@ async function fetchSheetData() {
     }
 
     const count = migrationResults.drivers.length;
+    console.log("Drivers found:", count);
     setStatus(count > 0 ? "ok" : "err", count > 0 ? `✅ تم جلب ${count} سائق` : "❌ لا توجد بيانات");
     renderMigrationPreview();
 
   } catch (err) {
     console.error("Fetch error:", err);
-    toast("❌ تعذر الجلب: " + err.message, "err");
-    setStatus("err", "فشل الجلب");
+    // Try alternative: use a proxy or different approach
+    toast("❌ خطأ: " + err.message + "\nجرّب جعل الشيت عاماً", "err");
+    setStatus("err", "فشل الجلب: " + err.message);
   }
 }
 
@@ -1155,365 +1165,6 @@ async function doMigration() {
 
     setStatus("ok", `✅ تم استيراد ${count} سائق` + (skipped > 0 ? ` (تم تخطي ${skipped} مكرر)` : ""));
     toast(`✅ تم استيراد ${count} سائق` + (skipped > 0 ? ` — تخطي ${skipped} مكرر` : ""), "ok");
-    loadAll();
-  } catch (err) {
-    toast("❌ خطأ: " + err.message, "err");
-    setStatus("err", "فشل الاستيراد");
-  }
-}
-
-async function fetchSheetData() {
-  const url = migrationSheetUrl || document.getElementById("migration-url").value.trim();
-  if (!url) { alert("أدخل رابط Google Sheet!"); return; }
-  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-  if (!match) { alert("رابط غير صالح!"); return; }
-  const sheetId = match[1];
-
-  setStatus("loading", "جاري جلب البيانات من Google Sheets...");
-  document.getElementById("migration-preview").style.display = "none";
-  migrationResults = { drivers: [], violations: [], deductions: [], licenses: [], accounts: [] };
-
-  // Known sheet names from Code.gs
-  const SHEETS = [
-    { name: "بيانات_السائقين_والسيارات", type: "drivers", cols: ["name", "car", "id"] },
-    { name: "سجل_المخالفات", type: "violations", cols: ["date", "driver", "car", "desc", "amount", "id"] },
-    { name: "سجل_الخصومات", type: "deductions", cols: ["date", "driver", "amount", "type", "id"] },
-    { name: "البيانات", type: "licenses", cols: ["carNumber", "company", "carType", "chassis", "driver", "expiry", "notes"] },
-    { name: "الحسابات", type: "accounts", cols: ["driver", "violations", "deductions", "remaining"] }
-  ];
-
-  let loaded = 0;
-  for (const sheet of SHEETS) {
-    try {
-      // Get GID for each sheet by name (we'll fetch gid=0 first, others need GIDs)
-      const gid = SHEETS.indexOf(sheet); // approximate gid mapping
-      const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
-      const resp = await fetch(csvUrl);
-      if (!resp.ok) continue;
-      const csv = await resp.text();
-      const rows = parseCSVText(csv);
-      if (rows.length < 2) continue;
-
-      const headers = rows[0];
-      for (let i = 1; i < rows.length; i++) {
-        const r = rows[i];
-        if (!r || r.every(c => !c)) continue; // skip empty rows
-        if (sheet.type === "drivers" && r[0]) {
-          migrationResults.drivers.push({ name: String(r[0] || ""), car: String(r[1] || "") });
-        } else if (sheet.type === "violations" && r[1]) {
-          migrationResults.violations.push({
-            date: formatDateVal(r[0]), driver: String(r[1] || ""), car: String(r[2] || ""),
-            desc: String(r[3] || ""), amount: parseFloat(r[4]) || 0
-          });
-        } else if (sheet.type === "deductions" && r[1]) {
-          migrationResults.deductions.push({
-            date: formatDateVal(r[0]), driver: String(r[1] || ""),
-            amount: parseFloat(r[2]) || 0, type: String(r[3] || "خصم")
-          });
-        } else if (sheet.type === "licenses" && r[0]) {
-          migrationResults.licenses.push({
-            carNumber: String(r[0] || ""), company: String(r[1] || ""),
-            carType: String(r[2] || ""), chassis: String(r[3] || ""),
-            driver: String(r[4] || ""),
-            expiry: r[5] instanceof Date ? r[5].toISOString().slice(0, 10) : formatDateVal(r[5]),
-            notes: String(r[6] || "")
-          });
-        } else if (sheet.type === "accounts" && r[0]) {
-          migrationResults.accounts.push({
-            driver: String(r[0] || ""),
-            violations: parseFloat(r[1]) || 0,
-            deductions: parseFloat(r[2]) || 0,
-            remaining: parseFloat(r[3]) || 0
-          });
-        }
-      }
-      loaded++;
-    } catch (e) {
-      console.warn("Skip sheet " + sheet.name + ": " + e.message);
-    }
-  }
-
-  if (loaded === 0) {
-    // Fallback: try single CSV from gid=0
-    try {
-      const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
-      const resp = await fetch(csvUrl);
-      if (resp.ok) {
-        const csv = await resp.text();
-        const rows = parseCSVText(csv);
-        if (rows.length >= 2) {
-          parseGenericCSV(rows);
-          loaded = 1;
-        }
-      }
-    } catch (e) { console.warn("Fallback failed:", e); }
-  }
-
-  setStatus(loaded > 0 ? "ok" : "err", loaded > 0 ? `✅ تم جلب ${loaded} شيتات` : "❌ تعذر الجلب — اجعل الشيت عاماً مؤقتاً");
-  renderMigrationPreview();
-}
-
-function parseCSVText(text) {
-  const lines = text.split("\n");
-  return lines.map(line => {
-    const result = [];
-    let current = "";
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      if (line[i] === '"') { inQuotes = !inQuotes; }
-      else if (line[i] === "," && !inQuotes) { result.push(current.trim()); current = ""; }
-      else { current += line[i]; }
-    }
-    result.push(current.trim());
-    return result;
-  }).filter(r => r.some(c => c));
-}
-
-function formatDateVal(d) {
-  if (!d) return "";
-  if (d instanceof Date) return d.toISOString().slice(0, 10);
-  const s = String(d).trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/.test(s)) {
-    const [a, b, c] = s.split(/[\/\-]/);
-    return `${c}-${b.padStart(2, "0")}-${a.padStart(2, "0")}`;
-  }
-  return s;
-}
-
-function parseGenericCSV(rows) {
-  const headers = rows[0].map(h => String(h).toLowerCase());
-  for (let i = 1; i < rows.length; i++) {
-    const r = rows[i];
-    if (!r || r.every(c => !c)) continue;
-    // Put everything as violations if we can't determine the type
-    if (r[0] && r[1]) {
-      migrationResults.violations.push({
-        date: formatDateVal(r[0]), driver: String(r[1] || ""), car: String(r[2] || ""),
-        desc: String(r[3] || ""), amount: parseFloat(r[4]) || 0
-      });
-    }
-  }
-}
-
-function renderMigrationPreview() {
-  const preview = document.getElementById("migration-preview");
-  const stats = document.getElementById("migration-stats");
-  const tbody = document.getElementById("migration-tbody");
-  preview.style.display = "";
-
-  const total = migrationResults.drivers.length + migrationResults.violations.length
-    + migrationResults.deductions.length + migrationResults.licenses.length;
-
-  if (total === 0) {
-    stats.innerHTML = '<span style="color:#dc2626;font-size:.82rem">❌ لا توجد بيانات — اجعل الشيت عاماً (Public) مؤقتاً</span>';
-    tbody.innerHTML = "";
-    return;
-  }
-
-  stats.innerHTML = `
-    <span class="tag tag-active">👤 ${migrationResults.drivers.length} سائق</span>
-    <span class="tag tag-rejected" style="margin-right:4px">🚨 ${migrationResults.violations.length} مخالفة</span>
-    <span class="tag tag-approved" style="margin-right:4px">✅ ${migrationResults.deductions.length} خصم</span>
-    <span class="tag tag-pending" style="margin-right:4px">🪪 ${migrationResults.licenses.length} ترخيص</span>
-  `;
-
-  let html = "";
-  if (migrationResults.drivers.length) {
-    html += '<tr><td colspan="2" style="background:#eff6ff;font-weight:700;font-size:.78rem">👤 السائقون والسيارات</td></tr>';
-    html += migrationResults.drivers.slice(0, 10).map(d =>
-      `<tr><td>${d.name}</td><td>${d.car}</td></tr>`
-    ).join("");
-    if (migrationResults.drivers.length > 10) html += `<tr><td colspan="2" style="color:#64748b">... و ${migrationResults.drivers.length - 10} سائق آخرين</td></tr>`;
-  }
-  if (migrationResults.violations.length) {
-    html += '<tr><td colspan="2" style="background:#fef2f2;font-weight:700;font-size:.78rem">🚨 المخالفات</td></tr>';
-    html += migrationResults.violations.slice(0, 5).map(v =>
-      `<tr><td>${v.date} — ${v.driver}</td><td>${v.desc} (${fmt(v.amount)} ج)</td></tr>`
-    ).join("");
-    if (migrationResults.violations.length > 5) html += `<tr><td colspan="2" style="color:#64748b">... و ${migrationResults.violations.length - 5} مخالفة أخرى</td></tr>`;
-  }
-  if (migrationResults.deductions.length) {
-    html += '<tr><td colspan="2" style="background:#f0fdf4;font-weight:700;font-size:.78rem">✅ الخصومات</td></tr>';
-    html += migrationResults.deductions.slice(0, 5).map(d =>
-      `<tr><td>${d.date} — ${d.driver}</td><td>${fmt(d.amount)} ج — ${d.type}</td></tr>`
-    ).join("");
-  }
-  if (migrationResults.licenses.length) {
-    html += '<tr><td colspan="2" style="background:#eff6ff;font-weight:700;font-size:.78rem">🪪 التراخيص</td></tr>';
-    html += migrationResults.licenses.slice(0, 5).map(l =>
-      `<tr><td>${l.carNumber} — ${l.company}</td><td>انتهاء: ${l.expiry}</td></tr>`
-    ).join("");
-  }
-
-  tbody.innerHTML = html;
-}
-
-async function doMigration() {
-  const total = migrationResults.drivers.length + migrationResults.violations.length
-    + migrationResults.deductions.length + migrationResults.licenses.length;
-  if (total === 0) { toast("لا توجد بيانات للاستيراد!", "warn"); return; }
-  if (!confirm(`استيراد ${total} سجل إلى Firebase؟\nسيتم إضافة البيانات إلى البيانات الحالية.`)) return;
-
-  setStatus("loading", "جاري الاستيراد...");
-  let count = 0;
-
-  try {
-    // Import drivers → cars
-    for (const d of migrationResults.drivers) {
-      db.ref("cars").push({
-        id: d.car || "", chassis: "", motor: "", type: "", model: "",
-        expiry: "", company: "", driverName: d.name
-      });
-      count++;
-    }
-    // Import violations
-    for (const v of migrationResults.violations) {
-      db.ref("violations").push({
-        date: v.date, car: v.car || "إدارة", driver: v.driver,
-        desc: v.desc, amount: v.amount
-      });
-      count++;
-    }
-    // Import deductions → violations with negative amount
-    for (const d of migrationResults.deductions) {
-      db.ref("violations").push({
-        date: d.date, car: "إدارة", driver: d.driver,
-        desc: "[خصم] " + (d.type || ""), amount: -Math.abs(d.amount)
-      });
-      count++;
-    }
-    // Import licenses → cars (merge with existing drivers)
-    for (const l of migrationResults.licenses) {
-      // Check if car already exists from drivers import
-      const existing = Object.values(SYS.cars).find(c => c.id === l.carNumber);
-      if (existing) {
-        // Update existing car with license data
-        const key = Object.keys(SYS.cars).find(k => SYS.cars[k].id === l.carNumber);
-        if (key) {
-          db.ref("cars/" + key + "/chassis").set(l.chassis);
-          db.ref("cars/" + key + "/company").set(l.company);
-          db.ref("cars/" + key + "/type").set(l.carType);
-          db.ref("cars/" + key + "/expiry").set(l.expiry);
-          db.ref("cars/" + key + "/driverName").set(l.driver || existing.driverName);
-        }
-      } else {
-        db.ref("cars").push({
-          id: l.carNumber, chassis: l.chassis, motor: "", type: l.carType, model: "",
-          expiry: l.expiry, company: l.company, driverName: l.driver
-        });
-      }
-      count++;
-    }
-
-    setStatus("ok", `✅ تم استيراد ${count} سجل بنجاح`);
-    toast(`✅ تم استيراد ${count} سجل`, "ok");
-    loadAll();
-  } catch (err) {
-    toast("❌ خطأ: " + err.message, "err");
-    setStatus("err", "فشل الاستيراد");
-  }
-}
-
-async function fetchSheetData() {
-  const url = migrationSheetUrl || document.getElementById("migration-url").value.trim();
-  if (!url) { alert("أدخل رابط Google Sheet!"); return; }
-
-  // Extract sheet ID from URL
-  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-  if (!match) { alert("رابط غير صالح! أدخل رابط Google Sheet صحيح"); return; }
-  const sheetId = match[1];
-
-  setStatus("loading", "جاري جلب البيانات من Google Sheets...");
-  document.getElementById("migration-preview").style.display = "none";
-
-  try {
-    // Fetch as CSV (public sheets only, or use API key)
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
-    const response = await fetch(csvUrl);
-    if (!response.ok) throw new Error("تعذر الوصول للشيت — تأكد أنه عام (Public)");
-    const csv = await response.text();
-    parseMigrationCSV(csv);
-  } catch (err) {
-    // Fallback: try using the Apps Script web app URL
-    try {
-      const gasUrl = migrationSheetUrl.replace(/\/edit.*$/, "/exec");
-      const response = await fetch(gasUrl + "?action=getAll");
-      const json = await response.json();
-      if (json.status === "ok" && json.data) {
-        migrationData = json.data;
-        renderMigrationPreview();
-      } else {
-        throw new Error("البيانات غير صحيحة");
-      }
-    } catch (err2) {
-      toast("❌ تعذر جلب البيانات: " + err.message + "\nجرّب جعل الشيت عاماً أو استخدم رابط Apps Script", "err");
-      setStatus("err", "فشل جلب البيانات");
-    }
-  }
-}
-
-function parseMigrationCSV(csv) {
-  const lines = csv.split("\n");
-  if (lines.length < 2) { toast("الشيت فارغ!", "warn"); return; }
-  const headers = lines[0].split(",").map(h => h.trim().replace(/"/g, ""));
-  migrationData = { drivers: [], violations: [], deductions: [], accounts: [], licenses: [] };
-
-  // Try to detect which sheet data this is based on headers
-  const headerStr = headers.join(",").toLowerCase();
-
-  if (headerStr.includes("سائق") || headerStr.includes("driver")) {
-    // This looks like drivers data
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(",").map(c => c.trim().replace(/"/g, ""));
-      if (cols[0]) migrationData.drivers.push({ name: cols[0], car: cols[1] || "" });
-    }
-  }
-
-  renderMigrationPreview();
-}
-
-function renderMigrationPreview() {
-  const preview = document.getElementById("migration-preview");
-  const stats = document.getElementById("migration-stats");
-  const tbody = document.getElementById("migration-tbody");
-
-  preview.style.display = "";
-
-  if (migrationData.drivers) {
-    stats.innerHTML = `<span style="background:#dcfce7;color:#16a34a;padding:3px 10px;border-radius:12px;font-size:.75rem;font-weight:700">👤 ${migrationData.drivers.length} سائق</span>`;
-    tbody.innerHTML = migrationData.drivers.map(d =>
-      `<tr><td>${d.name}</td><td>${d.car || ""}</td></tr>`
-    ).join("");
-  } else if (Array.isArray(migrationData)) {
-    stats.innerHTML = `<span style="background:#dcfce7;color:#16a34a;padding:3px 10px;border-radius:12px;font-size:.75rem;font-weight:700">📊 ${migrationData.length} سجل</span>`;
-    tbody.innerHTML = migrationData.slice(0, 20).map(d =>
-      `<tr><td colspan="2">${JSON.stringify(d).substring(0, 100)}</td></tr>`
-    ).join("");
-  }
-}
-
-async function doMigration() {
-  if (!migrationData || (migrationData.drivers && !migrationData.drivers.length)) {
-    toast("لا توجد بيانات للاستيراد!", "warn"); return;
-  }
-  if (!confirm("هل تريد استيراد البيانات إلى Firebase؟\nسيتم إضافة البيانات إلى البيانات الحالية.")) return;
-
-  setStatus("loading", "جاري الاستيراد...");
-  let count = 0;
-
-  try {
-    if (migrationData.drivers) {
-      for (const d of migrationData.drivers) {
-        db.ref("cars").push({
-          id: d.car || "", chassis: "", motor: "", type: "", model: "",
-          expiry: "", company: "", driverName: d.name
-        });
-        count++;
-      }
-    }
-    setStatus("ok", `✅ تم استيراد ${count} سجل`);
-    toast(`✅ تم استيراد ${count} سجل`, "ok");
     loadAll();
   } catch (err) {
     toast("❌ خطأ: " + err.message, "err");
