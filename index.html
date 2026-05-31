@@ -458,16 +458,13 @@
               <li>راجع البيانات ثم اضغط "بدء الاستيراد"</li>
             </ol>
           </div>
-          <div style="display:flex;gap:8px;margin-bottom:12px">
-            <input type="text" id="migration-url" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vS4nRAlbeAEzIdy2p5ewp0QqnzM5ingxtswGtpG6z86fS_SQ6lsIS4fxJYy6DRUhMrKHQZPXp08k4tE/pub?output=csv" placeholder="الصق رابط Google Sheet هنا..." style="flex:1;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.85rem">
-            <button class="btn btn-blue" onclick="fetchSheetData()"><i class="fa-solid fa-cloud-arrow-down"></i> جلب البيانات</button>
-          </div>
-          <div style="margin-bottom:12px">
-            <div style="font-size:.75rem;color:#64748b;margin-bottom:6px">أو حمّل ملف Excel/CSV من الشيت يدوياً:</div>
-            <input type="file" id="migration-file" accept=".csv,.xlsx,.xls" onchange="fetchFromFile(event)" style="font-size:.78rem">
-          </div>
-          <div class="form-footer" style="padding:0;border:none;margin-bottom:12px">
-            <span style="font-size:.72rem;color:#64748b">💡 لو الجلب المباشر ما اشتغل، حمّل الشيت كـ Excel وارفعه من فوق</span>
+          <div class="form-card" style="margin-top:12px;border:2px solid #16a34a;background:#f0fdf4">
+            <div class="form-card-head" style="background:#16a34a"><i class="fa-solid fa-bolt"></i> استيراد سريع — البيانات جاهزة في الكود</div>
+            <div class="form-body" style="text-align:center">
+              <p style="font-size:.82rem;color:#166534;margin-bottom:12px">✅ كل البيانات اتمسحت من Google Sheet مباشرة في الكود — اضغط الزر تستورد فوراً<br>
+              <span style="font-size:.75rem;color:#16a34a">72 سائق + 17 سيارة + سجل المخالفات + سجل الخصومات + بيانات التراخيص</span></p>
+              <button class="btn btn-green" onclick="importAllPreloadedData()" style="font-size:.95rem;padding:12px 24px"><i class="fa-solid fa-rocket"></i> استيراد البيانات الآن</button>
+            </div>
           </div>
           <div id="migration-preview" style="display:none">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">

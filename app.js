@@ -908,12 +908,12 @@ function openModal(id) { document.getElementById(id).classList.add("open"); }
 function closeModal(id) { document.getElementById(id).classList.remove("open"); }
 document.querySelectorAll(".backdrop").forEach(b => b.addEventListener("click", e => { if (e.target === b) b.classList.remove("open"); }));
 let toastT;
-function toast(msg, type) {
+function toast(msg, type, duration) {
   const el = document.getElementById("toast");
   el.textContent = msg;
   el.className = "show" + (type ? " " + type : "");
   clearTimeout(toastT);
-  toastT = setTimeout(() => el.className = "", 3200);
+  toastT = setTimeout(() => el.className = "", duration || 3200);
 }
 
 // ======================== Auto Logout (30 min) ========================
@@ -979,9 +979,416 @@ function importFirebaseBackup(event) {
   event.target.value = "";
 }
 
-// --- Google Sheets Migration ---
-let migrationSheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS4nRAlbeAEzIdy2p5ewp0QqnzM5ingxtswGtpG6z86fS_SQ6lsIS4fxJYy6DRUhMrKHQZPXp08k4tE/pub?output=csv";
-let migrationResults = { drivers: [], violations: [], deductions: [], licenses: [], accounts: [] };
+// --- Pre-loaded data from ALL Google Sheets ---
+const PRELOADED_DRIVERS = [
+  { name: "خالد عبدالسميع عبدالرازق حسين", car: "4795" },
+  { name: "فتحي امام عبد السلام امام", car: "8435" },
+  { name: "محمود عطيه ابراهيم محمد الشاذلى", car: "4616" },
+  { name: "سعيد محمد ابراهيم محمود", car: "3481" },
+  { name: "محمد ابراهيم حسن موسى", car: "6814" },
+  { name: "عادل عبدالنبى عبدالحميد الحلبى", car: "8245" },
+  { name: "عصام سعيد عبدالصادق حسن", car: "6171" },
+  { name: "محمد احمد حسانين السيد", car: "5724" },
+  { name: "محمد محمد حسن السيد", car: "9312" },
+  { name: "علاء محمد محمد النحاس", car: "7425" },
+  { name: "دياب اسماعيل عبد اللطيف محمود الجبالي", car: "8562" },
+  { name: "حازم محمد محمد ابراهيم", car: "8562" },
+  { name: "احمد بدوى محمد محمد", car: "4623" },
+  { name: "محيي الدين علي عبد الحميد غنيم", car: "2547" },
+  { name: "صالح ابراهيم عبد الله الجبالي", car: "3683" },
+  { name: "سعيد عبدالعزيز عفيفى عبدالعال", car: "6242" },
+  { name: "حسين جمعة حجاج السيد", car: "5734" },
+  { name: "احمد فتحى السيد حسن", car: "4616" },
+  { name: "اشرف عنتر على محمد", car: "8245" },
+  { name: "هشام حمدان حسن نصار", car: "8265" },
+  { name: "السيد سلمان عبدالمقصود حمد", car: "3171" },
+  { name: "سعيد محمد فتوح عزب", car: "7896" },
+  { name: "احمد محمد محمود حسن", car: "9283" },
+  { name: "محمد عبدالله محمد عبدالوهاب", car: "1579" },
+  { name: "محمد صبرى نبوى ابراهيم", car: "1273" },
+  { name: "السيد ابراهيم عسران حفنى", car: "8265" },
+  { name: "ابراهيم فتحى محمد محمد البواب", car: "8626" },
+  { name: "عمر محمد حسن كمال عمر", car: "1496" },
+  { name: "يحيى نجف عبدالله", car: "8562" },
+  { name: "عزت ابراهيم عبدالعزيز السيد", car: "2538" },
+  { name: "اشرف خليل برهامى مهدى عبدربه", car: "2579" },
+  { name: "محمد صبحى مرسى حسن هيكل", car: "2547" },
+  { name: "احمد حسين جمعه حجاج", car: "3526" },
+  { name: "خالد محمد ابوالنجا محمد", car: "9124" },
+  { name: "محسن صبحى عبدالحميد دراز", car: "7346" },
+  { name: "احمد شريف احمد عبدالرازق", car: "5723" },
+  { name: "سليمان مرغنى عبدالله سليمان", car: "5724" },
+  { name: "احمد حسن هاشم عبدالله", car: "2483" },
+  { name: "احمد شاكر السيد ابراهيم", car: "1371" },
+  { name: "محمد السيد يحيى حسن", car: "9386" },
+  { name: "محمد احمد محمد احمد", car: "4742" },
+  { name: "احمد محمود فوزى احمد", car: "1566" },
+  { name: "احمد عبدالعليم محمد طه عريبه", car: "5734" },
+  { name: "ياسر عبدالله محمد على", car: "2853" },
+  { name: "محمد ابراهيم احمد عوض", car: "7352" },
+  { name: "على مصطفى تهامى مسلم", car: "8176" },
+  { name: "محمود عبداللطيف احمد احمد", car: "1928" },
+  { name: "اسلام محمد سيد محمد", car: "6576" },
+  { name: "محمود عبدالغفار جودة دسوقى", car: "7423" },
+  { name: "احمد محمد السيد خليل", car: "6981" },
+  { name: "احمد على محروس محمد الانشاصى", car: "3" },
+  { name: "محمود فتحى محمد محمد", car: "7642" },
+  { name: "سامح صلاح امين غريب", car: "5642" },
+  { name: "احمد سعيد احمد حسن", car: "9759" },
+  { name: "منصور على عبدالشكور على", car: "1216" },
+  { name: "عبدالرحمن ايمن احمد عزب", car: "1235" },
+  { name: "اسامة شحتة عبدالفتاح عطية", car: "8637" },
+  { name: "محمد حسين عبدالفتاح حسين", car: "9241" },
+  { name: "محمود مهدى احمد احمد", car: "1519" },
+  { name: "يوسف اسماعيل صباحى عبداللطيف", car: "7697" },
+  { name: "النطرون", car: "5161" },
+  { name: "عادل رشوان", car: "6814" },
+  { name: "عمرو لينا", car: "2467" },
+  { name: "لينا", car: "2469" },
+  { name: "خالد محمود", car: "7912" },
+  { name: "سعيد محمد شوقى", car: "1358" },
+  { name: "ىحىى البدرى", car: "5734" },
+  { name: "احمد محمود عبدالخالق", car: "5723" },
+  { name: "فتحى صابر على", car: "1666" },
+  { name: "احمد عبدالله", car: "9386" },
+  { name: "ايهاب السيد", car: "1928" },
+  { name: "عبدالعال الشحات", car: "2547" },
+  { name: "محى الدين", car: "2547" }
+];
+
+const PRELOADED_CARS_ONLY = [
+  "2156","2916","7385","2198","5468","6941","7362","2476","2136",
+  "1","6334","2976","7378","7535","7537","6268","9231"
+];
+
+// سجل المخالفات
+const PRELOADED_VIOLATIONS = [
+  { date:"2025-12-23", driver:"عادل عبدالنبى عبدالحميد الحلبى", car:"8245", desc:"حرام امان", amount:400 },
+  { date:"2025-09-20", driver:"عمر محمد حسن كمال عمر", car:"1928", desc:"سرعه", amount:700 },
+  { date:"2025-11-23", driver:"احمد سعيد احمد حسن", car:"7961", desc:"حرام", amount:200 },
+  { date:"2025-10-09", driver:"احمد سعيد احمد حسن", car:"7642", desc:"سرعه", amount:700 },
+  { date:"2025-11-17", driver:"احمد سعيد احمد حسن", car:"7642", desc:"سرعه", amount:700 },
+  { date:"2025-11-12", driver:"احمد عبدالعليم محمد طه عريبه", car:"2591", desc:"سرعه", amount:700 },
+  { date:"2025-05-10", driver:"محمد صبرى نبوى ابراهيم", car:"7684", desc:"سرعه", amount:700 },
+  { date:"2025-07-20", driver:"محمد صبرى نبوى ابراهيم", car:"7684", desc:"سرعه", amount:700 },
+  { date:"2025-07-31", driver:"محمد صبرى نبوى ابراهيم", car:"7684", desc:"سرعه", amount:700 },
+  { date:"2025-10-20", driver:"محمد صبرى نبوى ابراهيم", car:"7684", desc:"سرعه", amount:700 },
+  { date:"2025-09-21", driver:"اسامة شحتة عبدالفتاح عطية", car:"7684", desc:"استعمال النطرون", amount:200 },
+  { date:"2025-11-16", driver:"عبدالرحمن ايمن احمد عزب", car:"7684", desc:"سرعه", amount:700 },
+  { date:"2026-01-20", driver:"محمد عصافيرى ابراهيم محمد الشاذلى", car:"9124", desc:"سرعه", amount:2800 },
+  { date:"2026-01-20", driver:"احمد عبدالعليم محمد طه عريبه", car:"2591", desc:"سرعه", amount:400 },
+  { date:"2026-01-20", driver:"احمد عبدالعليم محمد طه عريبه", car:"2591", desc:"سرعه", amount:700 },
+  { date:"2026-01-20", driver:"احمد محمود فوزى احمد", car:"9283", desc:"سرعه", amount:700 },
+  { date:"2026-01-20", driver:"احمد عبدالعليم محمد طه عريبه", car:"9283", desc:"حرام", amount:200 },
+  { date:"2026-01-20", driver:"احمد عبدالعليم محمد طه عريبه", car:"9283", desc:"سرعه", amount:200 },
+  { date:"2025-11-12", driver:"هشام حمدان حسن نصار", car:"1273", desc:"عدم ارتداء حزام الامان", amount:1200 },
+  { date:"2025-06-06", driver:"هشام حمدان حسن نصار", car:"1273", desc:"سرعه", amount:700 },
+  { date:"2025-10-21", driver:"هشام حمدان حسن نصار", car:"1273", desc:"حرام", amount:200 },
+  { date:"2025-11-22", driver:"هشام حمدان حسن نصار", car:"1273", desc:"سرعه", amount:700 },
+  { date:"2026-01-01", driver:"هشام حمدان حسن نصار", car:"1273", desc:"سرعه", amount:700 },
+  { date:"2026-01-20", driver:"محمد احمد حسانين السيد", car:"5724", desc:"سرعه (1)", amount:7700 },
+  { date:"2026-01-20", driver:"محمد احمد حسانين السيد", car:"5724", desc:"حرام (2)", amount:1400 },
+  { date:"2026-01-20", driver:"عادل عبدالنبى عبدالحميد الحلبى", car:"8245", desc:"سرعه (1)", amount:2800 },
+  { date:"2026-01-20", driver:"محمد السيد يحيى حسن", car:"5468", desc:"سرعه (2)", amount:4900 },
+  { date:"2026-01-20", driver:"محمد السيد يحيى حسن", car:"5468", desc:"حرام", amount:200 },
+  { date:"2026-01-20", driver:"السيد ابراهيم عسران حفنى", car:"8265", desc:"سرعه", amount:700 },
+  { date:"2026-01-20", driver:"النطرون", car:"1215", desc:"سرعه (3)", amount:1400 },
+  { date:"2026-01-20", driver:"دياب اسماعيل عبد اللطيف محمود الجبالي", car:"2781", desc:"سرعه (4)", amount:1500 },
+  { date:"2025-08-04", driver:"محمد الاربى احمد عوض", car:"2591", desc:"سرعه", amount:700 },
+  { date:"2025-08-04", driver:"ابراهيم فتحى محمد محمد البواب", car:"2591", desc:"حرام", amount:200 },
+  { date:"2025-08-04", driver:"خالد محمد ابوالنجا محمد", car:"2198", desc:"سرعه (5)", amount:3900 },
+  { date:"2026-01-04", driver:"محمد عبدالعليم محمد عبدالخالق", car:"1566", desc:"سرعه (6)", amount:1400 },
+  { date:"2025-12-21", driver:"عادل رشوان", car:"7385", desc:"حرام", amount:200 },
+  { date:"2025-08-24", driver:"عمرو لينا", car:"7385", desc:"حرام", amount:200 },
+  { date:"2025-07-02", driver:"دياب اسماعيل عبد اللطيف محمود الجبالي", car:"6538", desc:"مخالفة سرعة الزحمة الالكترونية", amount:400 },
+  { date:"2025-07-03", driver:"محيي الدين علي عبد الحميد غنيم", car:"6538", desc:"سرعه", amount:700 },
+  { date:"2025-07-06", driver:"محيي الدين علي عبد الحميد غنيم", car:"6538", desc:"سرعه", amount:700 },
+  { date:"2025-09-20", driver:"محيي الدين علي عبد الحميد غنيم", car:"6538", desc:"سرعه", amount:700 },
+  { date:"2025-10-06", driver:"محيي الدين علي عبد الحميد غنيم", car:"6538", desc:"سرعه", amount:700 },
+  { date:"2025-12-17", driver:"محيي الدين علي عبد الحميد غنيم", car:"6538", desc:"سرعه", amount:700 },
+  { date:"2025-12-21", driver:"لينا", car:"3526", desc:"سرعه", amount:400 },
+  { date:"2025-11-06", driver:"عصام سعيد عبدالصادق حسن", car:"3481", desc:"حرام", amount:200 },
+  { date:"2025-10-06", driver:"خالد محمود", car:"7642", desc:"سرعه", amount:700 },
+  { date:"2025-11-17", driver:"خالد محمود", car:"7642", desc:"سرعه", amount:700 },
+  { date:"2025-08-07", driver:"احمد شاكر السيد ابراهيم", car:"1358", desc:"سرعه", amount:400 },
+  { date:"2025-09-09", driver:"احمد شاكر السيد ابراهيم", car:"1358", desc:"سرعه", amount:700 },
+  { date:"2025-10-09", driver:"احمد شاكر السيد ابراهيم", car:"1358", desc:"سرعه", amount:700 },
+  { date:"2025-10-01", driver:"سليمان مرغنى عبدالله سليمان", car:"2547", desc:"سرعه", amount:700 },
+  { date:"2025-11-08", driver:"سليمان مرغنى عبدالله سليمان", car:"2547", desc:"سرعه", amount:700 },
+  { date:"2026-01-04", driver:"صالح ابراهيم عبد الله الجبالي", car:"1928", desc:"حرام", amount:700 },
+  { date:"2025-10-01", driver:"حازم محمد محمد ابراهيم", car:"8562", desc:"سرعه", amount:700 },
+  { date:"2025-10-12", driver:"حازم محمد محمد ابراهيم", car:"8562", desc:"سرعه", amount:700 },
+  { date:"2025-08-12", driver:"حازم محمد محمد ابراهيم", car:"8562", desc:"سرعه", amount:700 },
+  { date:"2026-02-20", driver:"محمد احمد حسانين السيد", car:"1278", desc:"سرعه 2026/1/19 - 2026/1/19 - التحليلى", amount:1800 },
+  { date:"2026-02-20", driver:"محمد احمد حسانين السيد", car:"1278", desc:"حرام 2026/1/19 - 2026/1/19", amount:600 },
+  { date:"2025-12-13", driver:"محمد حسين عبدالفتاح حسين", car:"4616", desc:"مخالفة سرعة الزحمة الالكترونية الابتدائى", amount:400 },
+  { date:"2026-02-10", driver:"عمر محمد حسن كمال عمر", car:"1579", desc:"مخالفة 4 المروى الابتدائى سرعة حد الاجره (50) السعة", amount:700 },
+  { date:"2026-03-24", driver:"سعيد محمد شوقى", car:"2547", desc:"سرعه", amount:700 },
+  { date:"2026-04-03", driver:"حازم محمد محمد ابراهيم", car:"8562", desc:"مخالفة 4 المروى الابتدائى", amount:700 },
+  { date:"2026-03-08", driver:"حازم محمد محمد ابراهيم", car:"8562", desc:"مخالفة طريق استكمال المسرعين", amount:700 },
+  { date:"2026-04-14", driver:"حازم محمد محمد ابراهيم", car:"8562", desc:"مخالفة 4 المروى الابتدائى", amount:700 },
+  { date:"2026-04-14", driver:"دياب اسماعيل عبد اللطيف محمود الجبالي", car:"8562", desc:"مخالفة 4 المروى الابتدائى", amount:700 },
+  { date:"2026-02-23", driver:"السيد ابراهيم عسران حفنى", car:"8265", desc:"الاونت الكهربائية المسرعى الكلى 27 (سرعه)", amount:700 },
+  { date:"2026-03-19", driver:"السيد ابراهيم عسران حفنى", car:"8265", desc:"طريق ثانى الكهربائية المسرعى الكلى 27 (برعه)", amount:700 },
+  { date:"2026-03-21", driver:"محمد السيد يحيى حسن", car:"8265", desc:"مخالفة ربط الأطفال المسرعى الكلى", amount:700 },
+  { date:"2026-03-25", driver:"هشام حمدان حسن نصار", car:"8265", desc:"طريق ربط الأطفال المسرعى الكلى 27 (برعه)", amount:700 },
+  { date:"2026-04-10", driver:"السيد ابراهيم عسران حفنى", car:"8265", desc:"الموقف الراقي نفق المركب الحديث المئى", amount:700 },
+  { date:"2026-02-17", driver:"محمد ابراهيم حسن موسى", car:"6814", desc:"مخالفة طريق استكمال المسرعين", amount:700 },
+  { date:"2026-04-07", driver:"محمد ابراهيم حسن موسى", car:"6814", desc:"مخالفة 4 المروى الابتدائى", amount:700 },
+  { date:"2026-01-01", driver:"حسين محمد عبدالخالق", car:"5734", desc:"حرام امان", amount:200 },
+  { date:"2026-01-01", driver:"حسين محمد عبدالخالق", car:"5734", desc:"حرام امان", amount:200 },
+  { date:"2026-01-29", driver:"حسين محمد عبدالخالق", car:"5734", desc:"مخالفة الابتدائى", amount:400 },
+  { date:"2026-01-23", driver:"احمد محمود عبدالخالق", car:"5723", desc:"مخالفة 4 المروى الابتدائى", amount:700 },
+  { date:"2026-01-26", driver:"احمد محمود عبدالخالق", car:"5723", desc:"مخالفة 4 المروى الابتدائى", amount:700 },
+  { date:"2026-04-06", driver:"احمد محمود عبدالخالق", car:"5723", desc:"مخالفة طريق استكمال المسرعين", amount:700 },
+  { date:"2026-04-10", driver:"احمد محمود عبدالخالق", car:"5723", desc:"مخالفة 4 المروى الابتدائى", amount:700 },
+  { date:"2026-02-06", driver:"محمد احمد حسانين السيد", car:"5724", desc:"مخالفة طريق استكمال المسرعين", amount:700 },
+  { date:"2026-02-06", driver:"محمد احمد حسانين السيد", car:"5724", desc:"بلي斯顿 المسرعين الكلى 17", amount:200 },
+  { date:"2026-02-21", driver:"محمد احمد حسانين السيد", car:"5724", desc:"بلي斯顿 الرزاقى (حرام امان)", amount:200 },
+  { date:"2026-03-24", driver:"محمد احمد حسانين السيد", car:"5724", desc:"مخالفة 4 المروى الابتدائى", amount:700 },
+  { date:"2026-04-08", driver:"محيي الدين علي عبد الحميد غنيم", car:"2547", desc:"مخالفة 4 المروى الابتدائى", amount:700 },
+  { date:"2026-04-16", driver:"محيي الدين علي عبد الحميد غنيم", car:"2547", desc:"مخالفة 4 المروى الابتدائى", amount:700 },
+  { date:"2026-01-01", driver:"عادل عبدالنبى عبدالحميد الحلبى", car:"8245", desc:"سرعه", amount:700 },
+  { date:"2025-12-05", driver:"احمد عبادة", car:"9386", desc:"رادار مخالفة طريق استكمال المسرعين -", amount:700 },
+  { date:"2026-04-22", driver:"احمد عبادة", car:"9386", desc:"مخالفة 4 المروى الابتدائى", amount:700 },
+  { date:"2026-03-29", driver:"ايهاب السيد", car:"1928", desc:"طريق المليسين الكهربائية اسكتكالم رادار امان", amount:200 },
+  { date:"2026-05-13", driver:"محمد احمد حسانين السيد", car:"5724", desc:"مخالفة 4 المروى الابتدائى", amount:700 },
+  { date:"2026-05-07", driver:"محيي الدين", car:"2547", desc:"رادار مخالفة طريق استكمال المسرعين", amount:700 },
+  { date:"2026-05-13", driver:"محيي الدين", car:"2547", desc:"مخالفة 4 المروى الابتدائى", amount:700 }
+];
+
+// سجل الخصومات
+const PRELOADED_DEDUCTIONS = [
+  { date:"2026-01-26", driver:"عادل عبدالنبى عبدالحميد الحلبى", amount:1000, type:"خصم" },
+  { date:"2026-01-26", driver:"عمر محمد حسن كمال عمر", amount:1000, type:"خصم" },
+  { date:"2026-01-26", driver:"احمد سعيد احمد حسن", amount:1000, type:"خصم" },
+  { date:"2026-01-26", driver:"احمد عبدالعليم محمد طه عريبه", amount:1000, type:"خصم" },
+  { date:"2026-01-26", driver:"محمد صبرى نبوى ابراهيم", amount:1000, type:"خصم" },
+  { date:"2026-01-26", driver:"عبدالرحمن ايمن احمد عزب", amount:900, type:"خصم" },
+  { date:"2026-01-26", driver:"محمد عصافيرى ابراهيم محمد الشاذلى", amount:1000, type:"خصم" },
+  { date:"2026-01-26", driver:"احمد عبدالعليم محمد طه عريبه", amount:1800, type:"خصم" },
+  { date:"2026-01-26", driver:"هشام حمدان حسن نصار", amount:1000, type:"خصم" },
+  { date:"2026-01-26", driver:"محمد السيد يحيى حسن", amount:700, type:"خصم" },
+  { date:"2026-01-26", driver:"السيد ابراهيم عسران حفنى", amount:1000, type:"خصم" },
+  { date:"2026-01-26", driver:"اب اسماعيل عبد اللطيف محمود الجبالي", amount:700, type:"خصم" },
+  { date:"2026-01-26", driver:"محمد الاربى احمد عوض", amount:200, type:"خصم" },
+  { date:"2026-01-26", driver:"ابراهيم فتحى محمد محمد البواب", amount:1000, type:"خصم" },
+  { date:"2026-01-26", driver:"خالد محمد ابوالنجا محمد", amount:1000, type:"خصم" },
+  { date:"2026-01-26", driver:"محيي الدين علي عبد الحميد غنيم", amount:1000, type:"خصم" },
+  { date:"2026-01-26", driver:"عصام سعيد عبدالصادق حسن", amount:200, type:"خصم" },
+  { date:"2026-01-26", driver:"احمد شاكر السيد ابراهيم", amount:1000, type:"خصم" },
+  { date:"2026-01-26", driver:"سليمان مرغنى عبدالله سليمان", amount:700, type:"خصم" },
+  { date:"2026-01-26", driver:"حازم محمد محمد ابراهيم", amount:1000, type:"خصم" },
+  { date:"2026-01-26", driver:"محمد احمد حسانين السيد", amount:1000, type:"خصم" },
+  { date:"2026-02-22", driver:"علاء محمد محمد النحاس", amount:1000, type:"خصم" },
+  { date:"2026-02-22", driver:"علاء محمد محمد النحاس", amount:3000, type:"خصم" },
+  { date:"2026-02-22", driver:"عمر محمد حسن كمال عمر", amount:400, type:"خصم" },
+  { date:"2026-02-22", driver:"احمد عبدالعليم محمد طه عريبه", amount:100, type:"خصم" },
+  { date:"2026-02-22", driver:"محمد صبرى نبوى ابراهيم", amount:1000, type:"خصم" },
+  { date:"2026-02-22", driver:"محمود عبداللطيف احمد احمد", amount:1000, type:"خصم" },
+  { date:"2026-02-22", driver:"محمد احمد حسانين السيد", amount:1000, type:"خصم" },
+  { date:"2026-02-22", driver:"هشام حمدان حسن نصار", amount:1000, type:"خصم" },
+  { date:"2026-02-22", driver:"اب اسماعيل عبد اللطيف محمود الجبالي", amount:1000, type:"خصم" },
+  { date:"2026-02-22", driver:"خالد محمد ابوالنجا محمد", amount:1000, type:"خصم" },
+  { date:"2026-02-22", driver:"محيي الدين علي عبد الحميد غنيم", amount:400, type:"خصم" },
+  { date:"2026-02-22", driver:"محيي الدين علي عبد الحميد غنيم", amount:1000, type:"خصم" },
+  { date:"2026-02-22", driver:"احمد شاكر السيد ابراهيم", amount:800, type:"خصم" },
+  { date:"2026-02-22", driver:"حازم محمد محمد ابراهيم", amount:500, type:"خصم" },
+  { date:"2026-01-01", driver:"عمر محمد حسن كمال عمر", amount:700, type:"خصم" },
+  { date:"2026-01-02", driver:"احمد سعيد احمد حسن", amount:600, type:"خصم" },
+  { date:"2026-01-03", driver:"محمد صبرى نبوى ابراهيم", amount:800, type:"خصم" },
+  { date:"2026-01-04", driver:"اسلام محمد سيد محمد", amount:700, type:"خصم" },
+  { date:"2026-01-05", driver:"محمود عبداللطيف احمد احمد", amount:800, type:"خصم" },
+  { date:"2026-01-06", driver:"هشام حمدان حسن نصار", amount:1500, type:"خصم" },
+  { date:"2026-01-07", driver:"محمد احمد حسانين السيد", amount:0, type:"خصم" },
+  { date:"2026-01-08", driver:"محمد احمد حسانين السيد", amount:1000, type:"خصم" },
+  { date:"2026-01-09", driver:"محمد السيد يحيى حسن", amount:1000, type:"خصم" },
+  { date:"2026-01-10", driver:"خالد محمد ابوالنجا محمد", amount:1000, type:"خصم" },
+  { date:"2026-01-11", driver:"محيي الدين علي عبد الحميد غنيم", amount:1500, type:"خصم" },
+  { date:"2026-01-12", driver:"سليمان مرغنى عبدالله سليمان", amount:1400, type:"خصم" },
+  { date:"2026-04-20", driver:"محمد احمد حسانين السيد", amount:1000, type:"خصم" },
+  { date:"2026-04-20", driver:"محمد السيد يحيى حسن", amount:1000, type:"خصم" },
+  { date:"2026-04-20", driver:"السيد ابراهيم عسران حفنى", amount:1000, type:"خصم" },
+  { date:"2026-04-20", driver:"خالد محمد ابوالنجا محمد", amount:900, type:"خصم" },
+  { date:"2026-04-20", driver:"حازم محمد محمد ابراهيم", amount:1000, type:"خصم" },
+  { date:"2026-04-20", driver:"علاء محمد محمد النحاس", amount:1000, type:"خصم" },
+  { date:"2026-04-20", driver:"محمد ابراهيم حسن موسى", amount:1400, type:"خصم" },
+  { date:"2026-04-20", driver:"محيي الدين علي عبد الحميد غنيم", amount:1000, type:"خصم" },
+  { date:"2026-02-03", driver:"سعيد محمد شوقى", amount:700, type:"خصم" },
+  { date:"2026-04-20", driver:"نحى البدرى", amount:800, type:"خصم" },
+  { date:"2026-04-21", driver:"احمد محمود عبدالخالق", amount:1000, type:"خصم" },
+  { date:"2026-03-20", driver:"محمد حسين عبدالفتاح حسين", amount:400, type:"خصم" },
+  { date:"2026-05-17", driver:"محمد احمد حسانين السيد", amount:1000, type:"خصم" },
+  { date:"2026-05-17", driver:"محمد احمد حسانين السيد", amount:550, type:"خصم" },
+  { date:"2026-05-17", driver:"محمد السيد يحيى حسن", amount:900, type:"خصم" },
+  { date:"2026-05-17", driver:"السيد ابراهيم عسران حفنى", amount:600, type:"خصم" },
+  { date:"2026-05-17", driver:"اب اسماعيل عبد اللطيف محمود الجبالي", amount:400, type:"خصم" },
+  { date:"2026-05-17", driver:"محيي الدين علي عبد الحميد غنيم", amount:400, type:"خصم" },
+  { date:"2026-05-17", driver:"علاء محمد محمد النحاس", amount:200, type:"خصم" },
+  { date:"2026-05-17", driver:"ايهاب السيد", amount:400, type:"خصم" },
+  { date:"2026-05-17", driver:"محى الدين", amount:900, type:"خصم" },
+  { date:"2026-05-17", driver:"احمد محمود عبدالخالق", amount:850, type:"خصم" }
+];
+
+// Cars without drivers (from sheet — rows with only car numbers)
+// بيانات التراخيص (من شيت البيانات)
+const PRELOADED_LICENSES = [
+  { carNumber:"1", company:"ايهام النسسى", carType:"دبة كابينة", chassis:"4213784", motor:"3290740", driver:"ايهام النسسى", expiry:"2028-01-15" },
+  { carNumber:"3", company:"ايهام النسسى", carType:"دبة", chassis:"7116141", motor:"4495", driver:"قادر فرونس", expiry:"2026-09-30" },
+  { carNumber:"1215", company:"قادر فرونس", carType:"دبابة", chassis:"7109772", motor:"252565", driver:"مينا الفتح شيفورلي", expiry:"2026-05-12" },
+  { carNumber:"1216", company:"مصر للنقل", carType:"نقل كابينة", chassis:"10864", motor:"3338297", driver:"مسيح النصر", expiry:"2026-10-14" },
+  { carNumber:"1235", company:"مصر للنقل", carType:"دبابة", chassis:"70025450", motor:"6024024", driver:"فتحى صابر", expiry:"2026-06-25" },
+  { carNumber:"1273", company:"ذورجن امبكت", carType:"دبة كابينة", chassis:"3649", motor:"839", driver:"احمد شاكر السيد", expiry:"2026-08-14" },
+  { carNumber:"1278", company:"مصر للفرس", carType:"جامبو", chassis:"7104670", motor:"741256", driver:"ابراهيم فتحى محمد", expiry:"2026-11-09" },
+  { carNumber:"1358", company:"مصر للنوربات", carType:"نترنو", chassis:"432724", motor:"273638", driver:"احمد شاكر السيد", expiry:"2026-07-22" },
+  { carNumber:"1371", company:"مصر للنوربات", carType:"نترنو", chassis:"370025054", motor:"6021884", driver:"فخرى صابر", expiry:"2026-07-18" },
+  { carNumber:"1496", company:"مصر للنوربات", carType:"دبة", chassis:"3815", motor:"52839", driver:"عمر محمد حسن كمال عمر", expiry:"2026-09-16" },
+  { carNumber:"1519", company:"احدى الاسلام الارب", carType:"نترنو", chassis:"############", motor:"969632", driver:"محمود مهدى احمد احمد", expiry:"2026-07-31" },
+  { carNumber:"1566", company:"قادر فرونس", carType:"جامبو", chassis:"7100832", motor:"6073939", driver:"احمد محمود فوزى احمد", expiry:"2026-11-17" },
+  { carNumber:"1579", company:"مصر للنوربات", carType:"دبة", chassis:"4170934", motor:"60022458", driver:"محمد عبدالله محمد عبدالوهاب", expiry:"2026-12-06" },
+  { carNumber:"1633", company:"مصر للنوربات", carType:"نترنو", chassis:"7100729", motor:"4092635", driver:"", expiry:"2026-12-29" },
+  { carNumber:"1928", company:"مصر للنوربات", carType:"نترنو", chassis:"4077126", motor:"747142", driver:"محمود عبداللطيف احمد احمد", expiry:"2026-10-08" },
+  { carNumber:"2136", company:"مصر للنوربات", carType:"ملكى", chassis:"60022420", motor:"6002458", driver:"", expiry:"2026-11-17" },
+  { carNumber:"2156", company:"مصر للنوربات", carType:"مرورا نارية", chassis:"131506", motor:"333113", driver:"", expiry:"2026-12-12" },
+  { carNumber:"2198", company:"قادر فرونس", carType:"جامبو", chassis:"160017923", motor:"632196", driver:"", expiry:"2026-06-22" },
+  { carNumber:"2467", company:"مصر للنوربات", carType:"ملكى", chassis:"4077126", motor:"60022458", driver:"عمرو لينا", expiry:"2026-08-11" },
+  { carNumber:"2469", company:"مصر للنوربات", carType:"نترنو", chassis:"60022420", motor:"6002458", driver:"لينا", expiry:"2026-11-17" },
+  { carNumber:"2476", company:"مصر للنوربات", carType:"نترنو", chassis:"131506", motor:"333113", driver:"", expiry:"2026-12-12" },
+  { carNumber:"2483", company:"برادو جيب", carType:"نترنو", chassis:"160017923", motor:"632196", driver:"احمد حسن هاشم عبدالله", expiry:"2026-06-22" },
+  { carNumber:"2538", company:"مصر للنوربات", carType:"اوتوبس", chassis:"233186", motor:"290239", driver:"عزت ابراهيم عبدالعزيز السيد", expiry:"2026-08-13" },
+  { carNumber:"2547", company:"مصر للنوربات", carType:"اوتوبس", chassis:"233210", motor:"290273", driver:"محيي الدين علي عبد الحميد غنيم", expiry:"2026-05-29" },
+  { carNumber:"2561", company:"ذورجن امبكت", carType:"دبة كابينة", chassis:"7102213", motor:"420230", driver:"", expiry:"2026-07-30" },
+  { carNumber:"2579", company:"ذورجن امبكت", carType:"اوتوبس", chassis:"233169", motor:"287663", driver:"اشرف خليل برهامى مهدى عبدربه", expiry:"2026-08-08" },
+  { carNumber:"2591", company:"مصر للنوربات", carType:"دبة كابينة", chassis:"946404", motor:"5246", driver:"احمد عبدالعليم محمد طه عريبه", expiry:"2027-01-02" },
+  { carNumber:"2781", company:"ذورجن امبكت", carType:"جامبو", chassis:"57102210", motor:"88201", driver:"دياب اسماعيل عبد اللطيف محمود الجبالي", expiry:"2027-01-24" },
+  { carNumber:"2853", company:"برادو جيب", carType:"نترنو", chassis:"18673", motor:"5636907", driver:"ياسر عبدالله محمد على", expiry:"2026-07-21" },
+  { carNumber:"2916", company:"مصر للنوربات", carType:"جنيب", chassis:"4200488", motor:"531599", driver:"", expiry:"2026-11-17" },
+  { carNumber:"2976", company:"قادر فرونس", carType:"ملكى", chassis:"967205", motor:"183110038", driver:"", expiry:"2028-05-03" },
+  { carNumber:"3171", company:"النوربات", carType:"ملكى", chassis:"2010587", motor:"0", driver:"السيد سلمان عبدالمقصود حمد", expiry:"2026-06-09" },
+  { carNumber:"3481", company:"ذورجن امبكت", carType:"نترنو", chassis:"57102210", motor:"88201", driver:"سعيد محمد ابراهيم محمود", expiry:"2027-01-09" },
+  { carNumber:"3526", company:"قادر فرونس", carType:"نترنو", chassis:"7115994", motor:"483257", driver:"احمد حسين جمعه حجاج", expiry:"2026-06-17" },
+  { carNumber:"4616", company:"مرسيس", carType:"مرسيس", chassis:"##########", motor:"422411", driver:"محمود عطيه ابراهيم محمد الشاذلى", expiry:"2026-12-30" },
+  { carNumber:"4623", company:"مصر للنوربات", carType:"نترنو", chassis:"7108407", motor:"53281", driver:"احمد بدوى محمد محمد", expiry:"2026-06-11" },
+  { carNumber:"4742", company:"مصر للنوربات", carType:"جامبو", chassis:"7110514", motor:"6329031", driver:"محمد احمد محمد احمد", expiry:"2026-06-02" },
+  { carNumber:"4795", company:"ذورجن امبكت", carType:"نترنو", chassis:"85242", motor:"8196991", driver:"خالد عبدالسميع عبدالرازق حسين", expiry:"2026-07-11" },
+  { carNumber:"5161", company:"مصر للنوربات", carType:"ملكى", chassis:"990569", motor:"1914300012", driver:"النطرون", expiry:"2026-10-21" },
+  { carNumber:"5258", company:"مصر للنوربات", carType:"نترنو", chassis:"203602", motor:"1946", driver:"", expiry:"2026-09-09" },
+  { carNumber:"5468", company:"ذورجن امبكت", carType:"دبابة نارية", chassis:"567291", motor:"363511", driver:"محمد السيد يحيى حسن", expiry:"2026-12-08" },
+  { carNumber:"5642", company:"النوربات", carType:"برادو جيب", chassis:"900013643", motor:"5587610", driver:"سامح صلاح امين غريب", expiry:"2026-08-28" },
+  { carNumber:"5649", company:"مصر للنوربات", carType:"مرورا نارية", chassis:"1077568", motor:"6227267", driver:"", expiry:"2026-11-14" },
+  { carNumber:"5723", company:"قادر فرونس", carType:"جامبو", chassis:"128161", motor:"219", driver:"احمد محمود عبدالخالق", expiry:"2026-07-18" },
+  { carNumber:"5724", company:"قادر فرونس", carType:"جامبو", chassis:"128164", motor:"264", driver:"محمد احمد حسانين السيد", expiry:"2026-07-18" },
+  { carNumber:"5734", company:"مصر للنوربات", carType:"دبابة كابينة", chassis:"7128497", motor:"381368", driver:"حسين جمعة حجاج السيد", expiry:"2026-07-31" },
+  { carNumber:"6171", company:"مصر للنوربات", carType:"ملكى", chassis:"55946406", motor:"1740", driver:"عصام سعيد عبدالصادق حسن", expiry:"2026-08-07" },
+  { carNumber:"6242", company:"مصر للنوربات", carType:"نترنو", chassis:"903028086", motor:"7913221", driver:"سعيد عبدالعزيز عفيفى عبدالعال", expiry:"2026-10-08" },
+  { carNumber:"6268", company:"مصر للنوربات", carType:"نترنو", chassis:"6412", motor:"842810", driver:"", expiry:"2026-08-11" },
+  { carNumber:"6334", company:"", carType:"", chassis:"", motor:"", driver:"", expiry:"" },
+  { carNumber:"6538", company:"مصر للنوربات", carType:"نترنو", chassis:"57102224", motor:"355384", driver:"دياب اسماعيل عبد اللطيف محمود الجبالي", expiry:"2026-11-16" },
+  { carNumber:"6814", company:"مصر للنوربات", carType:"نترنو", chassis:"57102224", motor:"355384", driver:"محمد ابراهيم حسن موسى", expiry:"2026-11-16" },
+  { carNumber:"6941", company:"", carType:"", chassis:"", motor:"", driver:"", expiry:"" },
+  { carNumber:"7346", company:"", carType:"", chassis:"", motor:"", driver:"محسن صبحى عبدالحميد دراز", expiry:"" },
+  { carNumber:"7352", company:"", carType:"", chassis:"", motor:"", driver:"محمد ابراهيم احمد عوض", expiry:"" },
+  { carNumber:"7362", company:"", carType:"", chassis:"", motor:"", driver:"", expiry:"" },
+  { carNumber:"7378", company:"", carType:"", chassis:"", motor:"", driver:"", expiry:"" },
+  { carNumber:"7385", company:"", carType:"", chassis:"", motor:"", driver:"عادل رشوان", expiry:"" },
+  { carNumber:"7423", company:"", carType:"", chassis:"", motor:"", driver:"محمود عبدالغفار جودة دسوقى", expiry:"" },
+  { carNumber:"7425", company:"", carType:"", chassis:"", motor:"", driver:"علاء محمد محمد النحاس", expiry:"" },
+  { carNumber:"7535", company:"", carType:"", chassis:"", motor:"", driver:"", expiry:"" },
+  { carNumber:"7537", company:"", carType:"", chassis:"", motor:"", driver:"", expiry:"" },
+  { carNumber:"7642", company:"", carType:"", chassis:"", motor:"", driver:"محمود فتحى محمد محمد", expiry:"" },
+  { carNumber:"7697", company:"", carType:"", chassis:"", motor:"", driver:"يوسف اسماعيل صباحى عبداللطيف", expiry:"" },
+  { carNumber:"7896", company:"", carType:"", chassis:"", motor:"", driver:"سعيد محمد فتوح عزب", expiry:"" },
+  { carNumber:"7912", company:"", carType:"", chassis:"", motor:"", driver:"خالد محمود", expiry:"" },
+  { carNumber:"8176", company:"", carType:"", chassis:"", motor:"", driver:"على مصطفى تهامى مسلم", expiry:"" },
+  { carNumber:"8245", company:"", carType:"", chassis:"", motor:"", driver:"عادل عبدالنبى عبدالحميد الحلبى", expiry:"" },
+  { carNumber:"8265", company:"", carType:"", chassis:"", motor:"", driver:"هشام حمدان حسن نصار", expiry:"" },
+  { carNumber:"8435", company:"", carType:"", chassis:"", motor:"", driver:"فتحي امام عبد السلام امام", expiry:"" },
+  { carNumber:"8562", company:"", carType:"", chassis:"", motor:"", driver:"حازم محمد محمد ابراهيم", expiry:"" },
+  { carNumber:"8626", company:"", carType:"", chassis:"", motor:"", driver:"ابراهيم فتحى محمد محمد البواب", expiry:"" },
+  { carNumber:"8637", company:"", carType:"", chassis:"", motor:"", driver:"اسامة شحتة عبدالفتاح عطية", expiry:"" },
+  { carNumber:"9124", company:"", carType:"", chassis:"", motor:"", driver:"خالد محمد ابوالنجا محمد", expiry:"" },
+  { carNumber:"9241", company:"", carType:"", chassis:"", motor:"", driver:"محمد حسين عبدالفتاح حسين", expiry:"" },
+  { carNumber:"9283", company:"", carType:"", chassis:"", motor:"", driver:"احمد محمد محمود حسن", expiry:"" },
+  { carNumber:"9312", company:"", carType:"", chassis:"", motor:"", driver:"محمد محمد حسن السيد", expiry:"" },
+  { carNumber:"9386", company:"", carType:"", chassis:"", motor:"", driver:"محمد السيد يحيى حسن", expiry:"" },
+  { carNumber:"9759", company:"", carType:"", chassis:"", motor:"", driver:"احمد سعيد احمد حسن", expiry:"" }
+];
+
+// ======================== Import All Preloaded Data ========================
+function importAllPreloadedData() {
+  const total = PRELOADED_DRIVERS.length + PRELOADED_CARS_ONLY.length
+    + PRELOADED_VIOLATIONS.length + PRELOADED_DEDUCTIONS.length + PRELOADED_LICENSES.length;
+  if (!confirm(`استيراد ${total} سجل إلى Firebase؟\n\n• ${PRELOADED_DRIVERS.length} سائق\n• ${PRELOADED_CARS_ONLY.length} سيارة بدون سائق\n• ${PRELOADED_VIOLATIONS.length} مخالفة\n• ${PRELOADED_DEDUCTIONS.length} خصم\n• ${PRELOADED_LICENSES.length} ترخيص\n\nسيتم إضافة البيانات إلى البيانات الحالية.`)) return;
+
+  setStatus("loading", "جاري الاستيراد...");
+  let count = 0;
+  const existingCars = new Set(Object.values(SYS.cars).map(c => c.id));
+
+  // 1. استيراد السائقين
+  for (const d of PRELOADED_DRIVERS) {
+    if (d.car && existingCars.has(d.car)) continue;
+    db.ref("cars").push({
+      id: d.car || "", chassis: "", motor: "", type: "", model: "",
+      expiry: "", company: "", driverName: d.name
+    });
+    if (d.car) existingCars.add(d.car);
+    count++;
+  }
+
+  // 2. استيراد السيارات بدون سائق
+  for (const carNum of PRELOADED_CARS_ONLY) {
+    if (existingCars.has(carNum)) continue;
+    db.ref("cars").push({
+      id: carNum, chassis: "", motor: "", type: "", model: "",
+      expiry: "", company: "", driverName: ""
+    });
+    existingCars.add(carNum);
+    count++;
+  }
+
+  // 3. استيراد المخالفات
+  for (const v of PRELOADED_VIOLATIONS) {
+    db.ref("violations").push({
+      date: v.date, car: v.car || "إدارة", driver: v.driver,
+      desc: v.desc, amount: v.amount
+    });
+    count++;
+  }
+
+  // 4. استيراد الخصومات
+  for (const d of PRELOADED_DEDUCTIONS) {
+    db.ref("violations").push({
+      date: d.date, car: "إدارة", driver: d.driver,
+      desc: "[خصم] " + (d.type || ""), amount: -Math.abs(d.amount)
+    });
+    count++;
+  }
+
+  // 5. استيراد التراخيص (تحديث بيانات السيارة)
+  for (const l of PRELOADED_LICENSES) {
+    const key = Object.keys(SYS.cars).find(k => SYS.cars[k].id === l.carNumber);
+    if (key) {
+      if (l.chassis) db.ref("cars/" + key + "/chassis").set(l.chassis);
+      if (l.motor) db.ref("cars/" + key + "/motor").set(l.motor);
+      if (l.company) db.ref("cars/" + key + "/company").set(l.company);
+      if (l.carType) db.ref("cars/" + key + "/type").set(l.carType);
+      if (l.expiry) db.ref("cars/" + key + "/expiry").set(l.expiry);
+      if (l.driver && !SYS.cars[key].driverName) db.ref("cars/" + key + "/driverName").set(l.driver);
+    } else {
+      db.ref("cars").push({
+        id: l.carNumber, chassis: l.chassis || "", motor: l.motor || "",
+        type: l.carType || "", model: "", expiry: l.expiry || "",
+        company: l.company || "", driverName: l.driver || ""
+      });
+      existingCars.add(l.carNumber);
+    }
+    count++;
+  }
+
+  setStatus("ok", `✅ تم استيراد ${count} سجل بنجاح`);
+  toast(`✅ تم استيراد ${count} سجل بنجاح!`, "ok");
+  loadAll();
+}
 
 function setMigrationUrl() {
   migrationSheetUrl = document.getElementById("migration-url").value.trim();
@@ -997,63 +1404,133 @@ async function fetchSheetData() {
   document.getElementById("migration-preview").style.display = "none";
   migrationResults = { drivers: [], violations: [], deductions: [], licenses: [], accounts: [] };
 
-  // Convert any Google Sheets URL to CSV export
+  // Build CSV URL from any Google Sheets link
   let csvUrl = url;
   if (url.includes("/pub?")) {
-    csvUrl = url.replace("output=xlsx", "output=csv").replace("output=html", "output=csv");
-    if (!csvUrl.includes("output=csv")) csvUrl += "&output=csv";
-  } else if (url.includes("/edit")) {
-    const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    // Published URL — replace output type with csv
+    csvUrl = url.replace(/output=[^&]+/, "output=csv");
+  } else if (url.includes("/edit") || url.includes("/d/")) {
+    const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
     if (match) csvUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv&gid=0`;
   }
 
-  console.log("Fetching CSV from:", csvUrl);
+  console.log("[Migration] CSV URL:", csvUrl);
 
+  // Method 1: Direct fetch
   try {
-    const resp = await fetch(csvUrl, { mode: "cors" });
-    console.log("Response status:", resp.status);
+    const resp = await fetch(csvUrl);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const csv = await resp.text();
-    console.log("CSV length:", csv.length, "First 200 chars:", csv.substring(0, 200));
+    if (!csv || csv.length < 10) throw new Error("الرد فارغ");
+    console.log("[Migration] CSV received, length:", csv.length);
+    parseAndLoadCSV(csv);
+    return;
+  } catch (err) {
+    console.warn("[Migration] Direct fetch failed:", err.message);
+  }
 
-    const rows = parseCSVText(csv);
-    console.log("Parsed rows:", rows.length);
+  // Method 2: Load via script tag (bypasses CORS)
+  try {
+    const scriptUrl = csvUrl + "&callback=_csvCallback";
+    await new Promise((resolve, reject) => {
+      window._csvCallback = function(data) {
+        resolve(data);
+        delete window._csvCallback;
+      };
+      const s = document.createElement("script");
+      s.src = scriptUrl;
+      s.onerror = () => reject(new Error("script load failed"));
+      document.head.appendChild(s);
+      setTimeout(() => { reject(new Error("timeout")); }, 10000);
+    });
+  } catch (err2) {
+    console.warn("[Migration] Script method failed:", err2.message);
+  }
 
-    if (rows.length < 2) { toast("الشيت فارغ!", "warn"); setStatus("err", "الشيت فارغ"); return; }
+  // Method 3: Try via proxy
+  try {
+    const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(csvUrl);
+    const resp = await fetch(proxyUrl);
+    if (!resp.ok) throw new Error(`Proxy HTTP ${resp.status}`);
+    const csv = await resp.text();
+    if (!csv || csv.length < 10) throw new Error("Proxy response empty");
+    console.log("[Migration] Proxy CSV received, length:", csv.length);
+    parseAndLoadCSV(csv);
+    return;
+  } catch (err3) {
+    console.error("[Migration] All methods failed");
+  }
 
-    const headers = rows[0].map(h => String(h).trim());
-    console.log("Headers:", headers);
-    const colMap = detectColumns(headers);
-    console.log("Column map:", colMap);
+  // All methods failed — show file upload fallback
+  toast("❌ تعذر الجلب المباشر!\n\n📦 استخدم طريقة الرفعيدوية:\n1. افتح الشيت في Google Sheets\n2. ملف → تحميل → CSV\n3. ارفع الملف من أعلى", "warn", 6000);
+  setStatus("err", "فشل الجلب — استخدم رفع الملف يدوياً");
+}
 
-    for (let i = 1; i < rows.length; i++) {
-      const r = rows[i];
-      if (!r || r.every(c => !c)) continue;
+function parseAndLoadCSV(csv) {
+  const rows = parseCSVText(csv);
+  console.log("[Migration] Parsed rows:", rows.length);
 
-      const driverName = colMap.name >= 0 ? String(r[colMap.name] || "").trim() : "";
-      const carNum = colMap.car >= 0 ? String(r[colMap.car] || "").trim() : "";
-      const id = colMap.id >= 0 ? String(r[colMap.id] || "").trim() : "";
+  if (rows.length < 2) { toast("الشيت فارغ!", "warn"); setStatus("err", "الشيت فارغ"); return; }
 
-      if (!driverName && !carNum) continue;
+  const headers = rows[0].map(h => String(h).trim());
+  console.log("[Migration] Headers:", headers);
 
-      migrationResults.drivers.push({
-        name: driverName,
-        car: carNum,
-        existingId: id
-      });
+  // The sheet has: اسم السائق | رقم السيارة | ID
+  // We know the exact structure, so hardcode it
+  let driverCol = -1, carCol = -1, idCol = -1;
+  headers.forEach((h, i) => {
+    const hl = h.replace(/[\s_]/g, "");
+    if (hl.includes("سائق") || hl.includes("اسم")) driverCol = i;
+    else if (hl.includes("سيارة") || hl.includes("رقم")) carCol = i;
+    else if (hl.toLowerCase().includes("id")) idCol = i;
+  });
+
+  // Fallback: assume columns are 0=name, 1=car, 2=id
+  if (driverCol < 0) driverCol = 0;
+  if (carCol < 0) carCol = 1;
+  if (idCol < 0) idCol = 2;
+
+  console.log("[Migration] Columns - driver:", driverCol, "car:", carCol, "id:", idCol);
+
+  let count = 0, skipped = 0;
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r || r.every(c => !c)) { skipped++; continue; }
+
+    let driverName = String(r[driverCol] || "").trim();
+    let carNum = String(r[carCol] || "").trim();
+
+    // Clean car number: remove trailing text like "4616 علف" → "4616"
+    // Keep only digits and common plate characters
+    const carClean = carNum.replace(/[^\d\u0600-\u06FF\w]/g, " ").trim();
+    // Extract the numeric part
+    const carMatch = carNum.match(/\d+/);
+    carNum = carMatch ? carMatch[0] : carNum;
+
+    // Skip rows with no useful data
+    if (!driverName && !carNum) { skipped++; continue; }
+    // Skip rows where driver name is just a number (car number误放在 name column)
+    if (/^\d+\s/.test(driverName) && !carNum) {
+      carNum = driverName.match(/\d+/)?.[0] || "";
+      driverName = "";
+    }
+    // Skip completely empty names with only car numbers
+    if (!driverName && carNum) {
+      // Still add it — it's a car without a driver assigned yet
+      driverName = "";
     }
 
-    const count = migrationResults.drivers.length;
-    console.log("Drivers found:", count);
-    setStatus(count > 0 ? "ok" : "err", count > 0 ? `✅ تم جلب ${count} سائق` : "❌ لا توجد بيانات");
-    renderMigrationPreview();
-
-  } catch (err) {
-    console.error("Fetch error:", err);
-    // Try alternative: use a proxy or different approach
-    toast("❌ خطأ: " + err.message + "\nجرّب جعل الشيت عاماً", "err");
-    setStatus("err", "فشل الجلب: " + err.message);
+    migrationResults.drivers.push({
+      name: driverName,
+      car: carNum,
+      existingId: String(r[idCol] || "").trim()
+    });
+    count++;
   }
+
+  console.log("[Migration] Drivers ready:", count, "Skipped:", skipped);
+  setStatus(count > 0 ? "ok" : "err", count > 0 ? `✅ تم جلب ${count} سائق / سيارة` : "❌ لا توجد بيانات");
+  renderMigrationPreview();
 }
 
 function detectColumns(headers) {
@@ -1106,22 +1583,39 @@ function renderMigrationPreview() {
   preview.style.display = "";
 
   const total = migrationResults.drivers.length;
+  const withName = migrationResults.drivers.filter(d => d.name).length;
+  const withoutName = total - withName;
 
   if (total === 0) {
-    stats.innerHTML = '<span style="color:#dc2626;font-size:.82rem">❌ لا توجد بيانات — تأكد أن الشيت عام (Public)</span>';
+    stats.innerHTML = '<span style="color:#dc2626;font-size:.82rem">❌ لا توجد بيانات — تأكد أن الشيت عام (Public) أو ارفع الملف يدوياً</span>';
     tbody.innerHTML = "";
     return;
   }
 
   stats.innerHTML = `
-    <span class="tag tag-active" style="font-size:.82rem">👤 ${total} سائق / سيارة</span>
+    <span class="tag tag-active" style="font-size:.82rem">👤 ${withName} سائق</span>
+    ${withoutName > 0 ? `<span class="tag tag-pending" style="font-size:.82rem;margin-right:4px">🚗 ${withoutName} سيارة بدون سائق</span>` : ""}
   `;
 
-  let html = '<tr><td colspan="3" style="background:#eff6ff;font-weight:700;font-size:.78rem">👤 قائمة السائقين والسيارات</td></tr>';
-  html += migrationResults.drivers.slice(0, 20).map((d, i) =>
-    `<tr><td style="width:30px;color:#94a3b8">${i + 1}</td><td class="driver-cell">${d.name || '<span style="color:#dc2626">— بدون اسم —</span>'}</td><td class="car-cell">${d.car}</td></tr>`
-  ).join("");
-  if (total > 20) html += `<tr><td colspan="3" style="color:#64748b;text-align:center">... و ${total - 20} سائق آخرين</td></tr>`;
+  // Show drivers with names first, then those without
+  const named = migrationResults.drivers.filter(d => d.name);
+  const unnamed = migrationResults.drivers.filter(d => !d.name && d.car);
+
+  let html = "";
+  if (named.length) {
+    html += '<tr><td colspan="3" style="background:#eff6ff;font-weight:700;font-size:.78rem">👤 السائقون والسيارات (' + named.length + ')</td></tr>';
+    html += named.slice(0, 25).map((d, i) =>
+      `<tr><td style="width:30px;color:#94a3b8">${i + 1}</td><td class="driver-cell">${d.name}</td><td class="car-cell">${d.car || "—"}</td></tr>`
+    ).join("");
+    if (named.length > 25) html += `<tr><td colspan="3" style="color:#64748b;text-align:center">... و ${named.length - 25} سائق آخرين</td></tr>`;
+  }
+  if (unnamed.length) {
+    html += '<tr><td colspan="3" style="background:#fef3c7;font-weight:700;font-size:.78rem">🚗 سيارات بدون سائق محدد (' + unnamed.length + ')</td></tr>';
+    html += unnamed.slice(0, 10).map(d =>
+      `<tr><td style="color:#94a3b8">—</td><td style="color:#d97706;font-style:italic">بدون اسم</td><td class="car-cell">${d.car}</td></tr>`
+    ).join("");
+    if (unnamed.length > 10) html += `<tr><td colspan="3" style="color:#64748b;text-align:center">... و ${unnamed.length - 10} سيارة أخرى</td></tr>`;
+  }
 
   tbody.innerHTML = html;
 }
