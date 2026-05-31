@@ -5,13 +5,14 @@
 
 // ======================== Firebase Config ========================
 const firebaseConfig = {
-  apiKey: "AIzaSyAfU8T6aOt1odA2Vr68DlW8i0H4mjCKK1M",
-  authDomain: "carinvoic-de2cf.firebaseapp.com",
-  databaseURL: "https://carinvoic-de2cf-default-rtdb.firebaseio.com",
-  projectId: "carinvoic-de2cf",
-  storageBucket: "carinvoic-de2cf.firebasestorage.app",
-  messagingSenderId: "481790177014",
-  appId: "1:481790177014:web:5ea335bf7e9e6445da46d7"
+  apiKey: "AIzaSyBOQ1K6djn81iOZ2R251k1Ky_kCFUGdn9Y",
+  authDomain: "car-inovi.firebaseapp.com",
+  databaseURL: "https://car-inovi-default-rtdb.firebaseio.com",
+  projectId: "car-inovi",
+  storageBucket: "car-inovi.firebasestorage.app",
+  messagingSenderId: "396152886628",
+  appId: "1:396152886628:web:fd55e20311231137af9671",
+  measurementId: "G-BM9W87NR4X"
 };
 
 let db;
@@ -979,13 +980,266 @@ function importFirebaseBackup(event) {
 }
 
 // --- Google Sheets Migration ---
-let migrationSheetUrl = "";
-let migrationData = [];
+let migrationSheetUrl = "https://docs.google.com/spreadsheets/d/1F1TwFbITRRy0yIgIJFiymYv2kBrP0e85FjuSOoB2fJM/edit?gid=0";
+let migrationResults = { drivers: [], violations: [], deductions: [], licenses: [], accounts: [] };
 
 function setMigrationUrl() {
   migrationSheetUrl = document.getElementById("migration-url").value.trim();
   if (!migrationSheetUrl) { alert("أدخل رابط الشيت!"); return; }
-  toast("✅ تم حفظ الرابط — اضغط 'جلب البيانات'", "ok");
+  toast("✅ تم حفظ الرابط", "ok");
+}
+
+async function fetchSheetData() {
+  const url = migrationSheetUrl || document.getElementById("migration-url").value.trim();
+  if (!url) { alert("أدخل رابط Google Sheet!"); return; }
+  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if (!match) { alert("رابط غير صالح!"); return; }
+  const sheetId = match[1];
+
+  setStatus("loading", "جاري جلب البيانات من Google Sheets...");
+  document.getElementById("migration-preview").style.display = "none";
+  migrationResults = { drivers: [], violations: [], deductions: [], licenses: [], accounts: [] };
+
+  // Known sheet names from Code.gs
+  const SHEETS = [
+    { name: "بيانات_السائقين_والسيارات", type: "drivers", cols: ["name", "car", "id"] },
+    { name: "سجل_المخالفات", type: "violations", cols: ["date", "driver", "car", "desc", "amount", "id"] },
+    { name: "سجل_الخصومات", type: "deductions", cols: ["date", "driver", "amount", "type", "id"] },
+    { name: "البيانات", type: "licenses", cols: ["carNumber", "company", "carType", "chassis", "driver", "expiry", "notes"] },
+    { name: "الحسابات", type: "accounts", cols: ["driver", "violations", "deductions", "remaining"] }
+  ];
+
+  let loaded = 0;
+  for (const sheet of SHEETS) {
+    try {
+      // Get GID for each sheet by name (we'll fetch gid=0 first, others need GIDs)
+      const gid = SHEETS.indexOf(sheet); // approximate gid mapping
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+      const resp = await fetch(csvUrl);
+      if (!resp.ok) continue;
+      const csv = await resp.text();
+      const rows = parseCSVText(csv);
+      if (rows.length < 2) continue;
+
+      const headers = rows[0];
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r || r.every(c => !c)) continue; // skip empty rows
+        if (sheet.type === "drivers" && r[0]) {
+          migrationResults.drivers.push({ name: String(r[0] || ""), car: String(r[1] || "") });
+        } else if (sheet.type === "violations" && r[1]) {
+          migrationResults.violations.push({
+            date: formatDateVal(r[0]), driver: String(r[1] || ""), car: String(r[2] || ""),
+            desc: String(r[3] || ""), amount: parseFloat(r[4]) || 0
+          });
+        } else if (sheet.type === "deductions" && r[1]) {
+          migrationResults.deductions.push({
+            date: formatDateVal(r[0]), driver: String(r[1] || ""),
+            amount: parseFloat(r[2]) || 0, type: String(r[3] || "خصم")
+          });
+        } else if (sheet.type === "licenses" && r[0]) {
+          migrationResults.licenses.push({
+            carNumber: String(r[0] || ""), company: String(r[1] || ""),
+            carType: String(r[2] || ""), chassis: String(r[3] || ""),
+            driver: String(r[4] || ""),
+            expiry: r[5] instanceof Date ? r[5].toISOString().slice(0, 10) : formatDateVal(r[5]),
+            notes: String(r[6] || "")
+          });
+        } else if (sheet.type === "accounts" && r[0]) {
+          migrationResults.accounts.push({
+            driver: String(r[0] || ""),
+            violations: parseFloat(r[1]) || 0,
+            deductions: parseFloat(r[2]) || 0,
+            remaining: parseFloat(r[3]) || 0
+          });
+        }
+      }
+      loaded++;
+    } catch (e) {
+      console.warn("Skip sheet " + sheet.name + ": " + e.message);
+    }
+  }
+
+  if (loaded === 0) {
+    // Fallback: try single CSV from gid=0
+    try {
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
+      const resp = await fetch(csvUrl);
+      if (resp.ok) {
+        const csv = await resp.text();
+        const rows = parseCSVText(csv);
+        if (rows.length >= 2) {
+          parseGenericCSV(rows);
+          loaded = 1;
+        }
+      }
+    } catch (e) { console.warn("Fallback failed:", e); }
+  }
+
+  setStatus(loaded > 0 ? "ok" : "err", loaded > 0 ? `✅ تم جلب ${loaded} شيتات` : "❌ تعذر الجلب — اجعل الشيت عاماً مؤقتاً");
+  renderMigrationPreview();
+}
+
+function parseCSVText(text) {
+  const lines = text.split("\n");
+  return lines.map(line => {
+    const result = [];
+    let current = "";
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '"') { inQuotes = !inQuotes; }
+      else if (line[i] === "," && !inQuotes) { result.push(current.trim()); current = ""; }
+      else { current += line[i]; }
+    }
+    result.push(current.trim());
+    return result;
+  }).filter(r => r.some(c => c));
+}
+
+function formatDateVal(d) {
+  if (!d) return "";
+  if (d instanceof Date) return d.toISOString().slice(0, 10);
+  const s = String(d).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/.test(s)) {
+    const [a, b, c] = s.split(/[\/\-]/);
+    return `${c}-${b.padStart(2, "0")}-${a.padStart(2, "0")}`;
+  }
+  return s;
+}
+
+function parseGenericCSV(rows) {
+  const headers = rows[0].map(h => String(h).toLowerCase());
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r || r.every(c => !c)) continue;
+    // Put everything as violations if we can't determine the type
+    if (r[0] && r[1]) {
+      migrationResults.violations.push({
+        date: formatDateVal(r[0]), driver: String(r[1] || ""), car: String(r[2] || ""),
+        desc: String(r[3] || ""), amount: parseFloat(r[4]) || 0
+      });
+    }
+  }
+}
+
+function renderMigrationPreview() {
+  const preview = document.getElementById("migration-preview");
+  const stats = document.getElementById("migration-stats");
+  const tbody = document.getElementById("migration-tbody");
+  preview.style.display = "";
+
+  const total = migrationResults.drivers.length + migrationResults.violations.length
+    + migrationResults.deductions.length + migrationResults.licenses.length;
+
+  if (total === 0) {
+    stats.innerHTML = '<span style="color:#dc2626;font-size:.82rem">❌ لا توجد بيانات — اجعل الشيت عاماً (Public) مؤقتاً</span>';
+    tbody.innerHTML = "";
+    return;
+  }
+
+  stats.innerHTML = `
+    <span class="tag tag-active">👤 ${migrationResults.drivers.length} سائق</span>
+    <span class="tag tag-rejected" style="margin-right:4px">🚨 ${migrationResults.violations.length} مخالفة</span>
+    <span class="tag tag-approved" style="margin-right:4px">✅ ${migrationResults.deductions.length} خصم</span>
+    <span class="tag tag-pending" style="margin-right:4px">🪪 ${migrationResults.licenses.length} ترخيص</span>
+  `;
+
+  let html = "";
+  if (migrationResults.drivers.length) {
+    html += '<tr><td colspan="2" style="background:#eff6ff;font-weight:700;font-size:.78rem">👤 السائقون والسيارات</td></tr>';
+    html += migrationResults.drivers.slice(0, 10).map(d =>
+      `<tr><td>${d.name}</td><td>${d.car}</td></tr>`
+    ).join("");
+    if (migrationResults.drivers.length > 10) html += `<tr><td colspan="2" style="color:#64748b">... و ${migrationResults.drivers.length - 10} سائق آخرين</td></tr>`;
+  }
+  if (migrationResults.violations.length) {
+    html += '<tr><td colspan="2" style="background:#fef2f2;font-weight:700;font-size:.78rem">🚨 المخالفات</td></tr>';
+    html += migrationResults.violations.slice(0, 5).map(v =>
+      `<tr><td>${v.date} — ${v.driver}</td><td>${v.desc} (${fmt(v.amount)} ج)</td></tr>`
+    ).join("");
+    if (migrationResults.violations.length > 5) html += `<tr><td colspan="2" style="color:#64748b">... و ${migrationResults.violations.length - 5} مخالفة أخرى</td></tr>`;
+  }
+  if (migrationResults.deductions.length) {
+    html += '<tr><td colspan="2" style="background:#f0fdf4;font-weight:700;font-size:.78rem">✅ الخصومات</td></tr>';
+    html += migrationResults.deductions.slice(0, 5).map(d =>
+      `<tr><td>${d.date} — ${d.driver}</td><td>${fmt(d.amount)} ج — ${d.type}</td></tr>`
+    ).join("");
+  }
+  if (migrationResults.licenses.length) {
+    html += '<tr><td colspan="2" style="background:#eff6ff;font-weight:700;font-size:.78rem">🪪 التراخيص</td></tr>';
+    html += migrationResults.licenses.slice(0, 5).map(l =>
+      `<tr><td>${l.carNumber} — ${l.company}</td><td>انتهاء: ${l.expiry}</td></tr>`
+    ).join("");
+  }
+
+  tbody.innerHTML = html;
+}
+
+async function doMigration() {
+  const total = migrationResults.drivers.length + migrationResults.violations.length
+    + migrationResults.deductions.length + migrationResults.licenses.length;
+  if (total === 0) { toast("لا توجد بيانات للاستيراد!", "warn"); return; }
+  if (!confirm(`استيراد ${total} سجل إلى Firebase؟\nسيتم إضافة البيانات إلى البيانات الحالية.`)) return;
+
+  setStatus("loading", "جاري الاستيراد...");
+  let count = 0;
+
+  try {
+    // Import drivers → cars
+    for (const d of migrationResults.drivers) {
+      db.ref("cars").push({
+        id: d.car || "", chassis: "", motor: "", type: "", model: "",
+        expiry: "", company: "", driverName: d.name
+      });
+      count++;
+    }
+    // Import violations
+    for (const v of migrationResults.violations) {
+      db.ref("violations").push({
+        date: v.date, car: v.car || "إدارة", driver: v.driver,
+        desc: v.desc, amount: v.amount
+      });
+      count++;
+    }
+    // Import deductions → violations with negative amount
+    for (const d of migrationResults.deductions) {
+      db.ref("violations").push({
+        date: d.date, car: "إدارة", driver: d.driver,
+        desc: "[خصم] " + (d.type || ""), amount: -Math.abs(d.amount)
+      });
+      count++;
+    }
+    // Import licenses → cars (merge with existing drivers)
+    for (const l of migrationResults.licenses) {
+      // Check if car already exists from drivers import
+      const existing = Object.values(SYS.cars).find(c => c.id === l.carNumber);
+      if (existing) {
+        // Update existing car with license data
+        const key = Object.keys(SYS.cars).find(k => SYS.cars[k].id === l.carNumber);
+        if (key) {
+          db.ref("cars/" + key + "/chassis").set(l.chassis);
+          db.ref("cars/" + key + "/company").set(l.company);
+          db.ref("cars/" + key + "/type").set(l.carType);
+          db.ref("cars/" + key + "/expiry").set(l.expiry);
+          db.ref("cars/" + key + "/driverName").set(l.driver || existing.driverName);
+        }
+      } else {
+        db.ref("cars").push({
+          id: l.carNumber, chassis: l.chassis, motor: "", type: l.carType, model: "",
+          expiry: l.expiry, company: l.company, driverName: l.driver
+        });
+      }
+      count++;
+    }
+
+    setStatus("ok", `✅ تم استيراد ${count} سجل بنجاح`);
+    toast(`✅ تم استيراد ${count} سجل`, "ok");
+    loadAll();
+  } catch (err) {
+    toast("❌ خطأ: " + err.message, "err");
+    setStatus("err", "فشل الاستيراد");
+  }
 }
 
 async function fetchSheetData() {
